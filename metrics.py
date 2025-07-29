@@ -10,7 +10,7 @@ from collections import defaultdict, deque
 from app import db
 from email.utils import parsedate_to_datetime
 
-from schema import schema, canonical_ids, test_fields
+from schema import schema, canonical_ids, test_fields, sum_fields
 
 OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 
@@ -22,6 +22,7 @@ walden_results = defaultdict(dict)
 matches = defaultdict(dict)
 match_rates = defaultdict(dict)
 recall = defaultdict(dict)
+sum_fields_store = defaultdict(dict)
 
 MAX_REQUESTS_PER_SECOND = 10
 rate_limiter = None
@@ -252,7 +253,6 @@ def calc_match(prod, walden, entity):
         return field_type == "number" or field_type.startswith("number")
 
     match = {}
-    row_passed = True
     
     # Iterate through all fields in the schema for this entity type
     for field in schema[entity]:
@@ -300,21 +300,6 @@ def calc_match(prod, walden, entity):
         
         match[field] = passed
         
-        # Calculate percentage difference for number types
-        if (is_number_type(field_type) and 
-            isinstance(prod_value, (int, float)) and 
-            isinstance(walden_value, (int, float))):
-            
-            if prod_value == 0 and walden_value == 0:
-                diff = 0
-            elif prod_value == 0:
-                diff = None
-            else:
-                diff = round((walden_value - prod_value) / prod_value * 100)
-            
-            match[field + "_diff"] = diff
-            match[field + "_diff_below_5"] = abs(diff) <= 5 if diff is not None else False
-        
     _test_fields = test_fields.get(entity, []);
     match["testsPassed"] = all(match[field] for field in _test_fields) if len(_test_fields) > 0 else False
 
@@ -341,12 +326,29 @@ def calc_match_rates():
           count[field] += 1
             
       for field in fields:
-        match_rates[entity][field] = 100 * hits[field] / count[field]
-
+        match_rates[entity][field] = round(100 * hits[field] / count[field])
 
     print(match_rates)
 
 
+def calc_sum_fields():
+  entities = ["works"]
+  def sum_field(field, store):
+    sum = 0
+    for id in store:
+      if store[id] and isinstance(store[id][field], list):
+        sum += len(store[id][field])
+    return sum
+
+  for entity in entities:
+    sum_fields_store[entity] = {}
+    for field in sum_fields[entity]:
+      sum_fields_store[entity][field] = {
+        "prod": sum_field(field, prod_results[entity]),
+        "walden": sum_field(field, walden_results[entity])
+      }
+    
+  
 def calc_recall():
     for entity in prod_results:
         count = 0
@@ -360,8 +362,8 @@ def calc_recall():
             if entity in canonical_ids:
               if matches[entity][id][canonical_ids[entity]]:
                 id_hits += 1
-        recall[entity]["recall"] = round(100 * hits / count, 2)
-        recall[entity]["canonicalId"] = round(100 * id_hits / count, 2) if entity in canonical_ids else "-"
+        recall[entity]["recall"] = round(100 * hits / count)
+        recall[entity]["canonicalId"] = round(100 * id_hits / count) if entity in canonical_ids else "-"
         recall[entity]["sampleSize"] = count
         print(f"Recall for {entity}: {recall[entity]}")
 
@@ -375,7 +377,10 @@ def save_data():
         data=recall_data
     )
 
-    match_rates_data = dict(match_rates["works"])
+    match_rates_data = {
+      "rates": dict(match_rates["works"]),
+      "sums": dict(sum_fields_store["works"]),
+    }
     match_rates_metric_set = MetricSet(
         type="field_match_rates",
         entity="works",
@@ -436,6 +441,7 @@ async def run_metrics():
     # Calculate recall after all data is fetched
     calc_matches()
     calc_match_rates()
+    calc_sum_fields()
     calc_recall()
 
     # Save data to database

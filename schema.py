@@ -92,3 +92,10 @@ test_fields = {
     "cited_by_count",
   ]
 }
+
+sum_fields = {
+  "works": [
+    "referenced_works",
+    "locations",
+  ]
+}
