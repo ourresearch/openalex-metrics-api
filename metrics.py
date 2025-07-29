@@ -71,6 +71,7 @@ async def fetch_all_ids(ids, entity):
     
     headers = {'Authorization': f'Bearer {OPENALEX_API_KEY}'}
     
+    print("Fetching URLs with headers: ", headers)
     async with aiohttp.ClientSession(headers=headers) as session:
         tasks = []
         for i in range(n_groups):
