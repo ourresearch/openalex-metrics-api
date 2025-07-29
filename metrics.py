@@ -10,7 +10,7 @@ from collections import defaultdict, deque
 from app import db
 from email.utils import parsedate_to_datetime
 
-from schema import schema
+from schema import schema, canonical_ids
 
 OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 
@@ -325,7 +325,7 @@ def calc_match(prod, walden, entity):
 
 
 def calc_matches():
-    entities = ["works"]
+    entities = ["works", "authors", "sources", "institutions", "publishers"]
     for entity in entities:
       for id in prod_results[entity]:
         matches[entity][id] = calc_match(prod_results[entity][id], walden_results[entity][id], entity)
@@ -350,12 +350,19 @@ def calc_recall():
     for entity in prod_results:
         count = 0
         hits = 0
+        id_hits = 0
+        recall[entity] = {}
         for id in prod_results[entity]:
-            if walden_results[entity][id] is not None:
+            if walden_results[entity][id]:
                 hits += 1
             count += 1
-        recall[entity] = 100 * hits / count
-        print(f"Recall for {entity}: {recall[entity]}%")
+            if entity in canonical_ids:
+              if matches[entity][id][canonical_ids[entity]]:
+                id_hits += 1
+        recall[entity]["recall"] = round(100 * hits / count, 2)
+        recall[entity]["canonicalId"] = round(100 * id_hits / count, 2) if entity in canonical_ids else "-"
+        recall[entity]["sampleSize"] = count
+        print(f"Recall for {entity}: {recall[entity]}")
 
 
 def save_data():
@@ -426,10 +433,10 @@ async def run_metrics():
     await asyncio.gather(*tasks)
     
     # Calculate recall after all data is fetched
-    calc_recall()
     calc_matches()
     calc_match_rates()
-    
+    calc_recall()
+
     # Save data to database
     save_data()
 

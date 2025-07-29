@@ -58,5 +58,25 @@ schema = {
     "title": "string",
     "type": "string",
     "type_crossref": "string",
-  }
+  },
+  "authors": {
+    "orcid": "string",
+  },
+  "sources": {
+    "issn_l": "string",
+  },
+  "institutions": {
+    "ror": "string",
+  },
+  "publishers": {
+    "ids.wikidata": "string",
+  },
+}
+
+canonical_ids = {
+    "works": "doi",
+    "authors": "orcid",
+    "sources": "issn_l",
+    "institutions": "ror",
+    "publishers": "ids.wikidata",
 }
