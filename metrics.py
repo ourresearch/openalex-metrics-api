@@ -10,7 +10,7 @@ from collections import defaultdict, deque
 from app import db
 from email.utils import parsedate_to_datetime
 
-from schema import schema, canonical_ids
+from schema import schema, canonical_ids, test_fields
 
 OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 
@@ -315,11 +315,8 @@ def calc_match(prod, walden, entity):
             match[field + "_diff"] = diff
             match[field + "_diff_below_5"] = abs(diff) <= 5 if diff is not None else False
         
-        # Check if row passes overall
-        if not passed:
-            row_passed = False
-    
-    match["_id"] = row_passed
+    _test_fields = test_fields.get(entity, []);
+    match["testsPassed"] = all(match[field] for field in _test_fields) if len(_test_fields) > 0 else False
 
     return match
 
@@ -334,15 +331,19 @@ def calc_matches():
 def calc_match_rates():
     entities = ["works"]
     for entity in entities:
+      fields = list(schema[entity].keys()) + ["testsPassed"]
       count = defaultdict(int)
       hits = defaultdict(int)
       for id in prod_results[entity]:
-        for field in schema[entity]:
+        for field in fields:
           if matches[entity][id][field]:
             hits[field] += 1
           count[field] += 1
-      for field in schema[entity]:
+            
+      for field in fields:
         match_rates[entity][field] = 100 * hits[field] / count[field]
+
+
     print(match_rates)
 
 

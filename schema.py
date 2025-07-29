@@ -80,3 +80,15 @@ canonical_ids = {
     "institutions": "ror",
     "publishers": "ids.wikidata",
 }
+
+test_fields = {
+  "works": [
+    "doi",
+    "authorships",
+    "locations",
+    "primary_topic.id",
+    "institutions_distinct_count",
+    "referenced_works_count",
+    "cited_by_count",
+  ]
+}
