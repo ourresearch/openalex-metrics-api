@@ -195,6 +195,9 @@ def get_field_value(obj, field):
     if obj is None:
         return None
     
+    if field == "institutions_distinct_count":
+        return count_institutions(obj)
+    
     keys = field.split('.')
     value = obj
     
@@ -205,6 +208,19 @@ def get_field_value(obj, field):
             return None
     
     return value
+
+
+def count_institutions(obj):
+    if obj is None:
+        return 0
+    
+    institutions_set = set()
+    authorships = obj.get("authorships", []) or []
+    for authorship in authorships:
+        institutions = authorship.get("institutions", []) or []
+        for institution in institutions:
+            institutions_set.add(institution.get("id"))
+    return len(institutions_set)
 
 
 def deep_equal(obj1, obj2):
