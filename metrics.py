@@ -14,8 +14,7 @@ from schema import schema, canonical_ids, test_fields, sum_fields
 
 OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 
-prod_url = "https://api.openalex.org/"
-walden_url = "https://api.openalex.org/v2/"
+api_endpoint = "https://api.openalex.org/"
 
 prod_results = defaultdict(dict)
 walden_results = defaultdict(dict)
@@ -24,7 +23,7 @@ match_rates = defaultdict(dict)
 recall = defaultdict(dict)
 sum_fields_store = defaultdict(dict)
 
-MAX_REQUESTS_PER_SECOND = 10
+MAX_REQUESTS_PER_SECOND = 100
 rate_limiter = None
 
 class RateLimiter:
@@ -71,18 +70,17 @@ async def fetch_all_ids(ids, entity):
     
     headers = {'Authorization': f'Bearer {OPENALEX_API_KEY}'}
     
-    print("Fetching URLs with headers: ", headers)
     async with aiohttp.ClientSession(headers=headers) as session:
         tasks = []
         for i in range(n_groups):
             id_group = ids[i*100:(i+1)*100]
-            tasks.append(fetch_ids(session, id_group, entity, prod_url, prod_results))
-            tasks.append(fetch_ids(session, id_group, entity, walden_url, walden_results))
+            tasks.append(fetch_ids(session, id_group, entity, prod_results, is_v2=False))
+            tasks.append(fetch_ids(session, id_group, entity, walden_results, is_v2=True))
         
         await asyncio.gather(*tasks)
 
 
-async def fetch_ids(session, ids, entity, url, store):
+async def fetch_ids(session, ids, entity, store, is_v2):
     """Fetch IDs from a specific URL using the provided session with rate limiting and retry logic"""
     global rate_limiter
     
@@ -94,7 +92,9 @@ async def fetch_ids(session, ids, entity, url, store):
         # Acquire rate limit permission
         await rate_limiter.acquire()
         
-        api_url = f"{url}{entity}?filter={id_filter_field(entity)}:{'|'.join(ids)}&per_page=100"
+        # Extract the part after the last "/" if present, otherwise use the full id
+        clean_ids = [id.split("/")[-1] if "/" in id else id for id in ids]
+        api_url = f"{api_endpoint}{entity}?filter={id_filter_field(entity)}:{'|'.join(clean_ids)}&per_page=100{'&data-version=2' if is_v2 else ''}"
         try:
             async with session.get(api_url) as response:
                 if response.status == 200:
@@ -147,15 +147,15 @@ async def fetch_ids(session, ids, entity, url, store):
                         jitter = delay * 0.1 * (2 * random.random() - 1)
                         final_delay = delay + jitter
                         
-                        print(f"Server error ({response.status}) - retrying in {final_delay:.1f}s (attempt {attempt + 1}/{max_retries})")
+                        print(f"Server error ({response.status}) - retrying in {final_delay:.1f}s (attempt {attempt + 1}/{max_retries}) from {api_url}")
                         await asyncio.sleep(final_delay)
                         continue
                     else:
-                        print(f"Server error ({response.status}) - max retries exceeded for {entity}")
+                        print(f"Server error ({response.status}) - max retries exceeded for {entity} from {api_url}")
                         break
                 
                 else:
-                    print(f"HTTP {response.status} error fetching {entity} from {url}")
+                    print(f"HTTP {response.status} error fetching {entity} from {api_url}")
                     break  # Don't retry for other HTTP errors (400, 401, 403, etc.)
                     
         except asyncio.TimeoutError:
@@ -186,7 +186,7 @@ def extract_id(input_str):
 
 
 def id_filter_field(entity):
-    uses_id = ["keywords", "domains", "continents", "countries", "languages", "licenses", "sdgs", "work-types"]
+    uses_id = ["keywords", "domains", "fields", "subfields", "continents", "countries", "languages", "licenses", "sdgs", "work-types", "source-types"]
     return "id" if entity in uses_id else "ids.openalex"
 
 
@@ -195,8 +195,8 @@ def get_field_value(obj, field):
     if obj is None:
         return None
     
-    if field == "institutions_distinct_count":
-        return count_institutions(obj)
+    if field in ["authorships.id", "authorships.institutions.id", "authorships.countries", "concepts.id", "topics.id"]:
+        return get_nested_strings(obj, field)
     
     keys = field.split('.')
     value = obj
@@ -208,6 +208,53 @@ def get_field_value(obj, field):
             return None
     
     return value
+
+
+def get_nested_strings(obj, field):
+    """
+    Extract strings from nested structures with auto-detection.
+    Handles patterns like:
+    - array.object.string: "authorships.id"
+    - array.object.array.string: "authorships.countries" 
+    - array.object.array.object.string: "authorships.institutions.id"
+    """
+    def _extract_strings(current_obj, remaining_keys):
+        """Recursive helper to extract strings from nested structure"""
+        if not remaining_keys:
+            # No more keys - collect strings from current value
+            if isinstance(current_obj, str):
+                return [current_obj]
+            elif isinstance(current_obj, list):
+                # Array of strings
+                return [item for item in current_obj if isinstance(item, str)]
+            else:
+                return []
+        
+        # More keys to process
+        next_key = remaining_keys[0]
+        rest_keys = remaining_keys[1:]
+        
+        if isinstance(current_obj, list):
+            # Current level is an array - iterate through items
+            strings = []
+            for item in current_obj:
+                if isinstance(item, dict) and next_key in item:
+                    strings.extend(_extract_strings(item[next_key], rest_keys))
+            return strings
+            
+        elif isinstance(current_obj, dict) and next_key in current_obj:
+            # Current level is an object - access the next key
+            return _extract_strings(current_obj[next_key], rest_keys)
+            
+        else:
+            # Invalid structure or missing key
+            return []
+    
+    if obj is None:
+        return []
+    
+    keys = field.split('.')
+    return _extract_strings(obj, keys)
 
 
 def count_institutions(obj):
@@ -259,61 +306,102 @@ def calc_match(prod, walden, entity):
             return False
         
         if prod_value == 0 and walden_value == 0:
-
             return True
+
         if prod_value == 0:
             return False
+
         return abs((walden_value - prod_value) / prod_value * 100) <= 5
-    
-    def is_number_type(field_type):
-        """Check if field type is a number type"""
-        return field_type == "number" or field_type.startswith("number")
+
+    def passes_5_percent_or_more(prod_value, walden_value):
+        """Check if values are within 5% of each other or more"""
+        if type(prod_value) != type(walden_value):
+            return False
+        
+        if walden_value >= prod_value:
+            return True
+
+        return passes_5_percent(prod_value, walden_value)
 
     match = {}
     
     # Iterate through all fields in the schema for this entity type
     for field in schema[entity]:
-        field_type = schema[entity][field]
+        field_type_and_test = schema[entity][field]
+        parts = field_type_and_test.split('|')
+        field_type = parts[0]
+        test = parts[1] if len(parts) > 1 else None
+        
         passed = False
         
         prod_value = get_field_value(prod, field)
         walden_value = get_field_value(walden, field)
         
+
         if prod and not walden:
             passed = False
 
         elif prod_value is None and walden_value is None:
             passed = True
 
-        elif field_type == "number|<5%":
-            passed = passes_5_percent(prod_value, walden_value)
-
-        elif field_type == "number|≥":
+        elif field_type == "number":
             if type(prod_value) != type(walden_value):
                 passed = False
-            else:
+            elif test == "≥":
                 passed = prod_value <= walden_value
-
-        elif field_type == "array|<5%":
-            if not (isinstance(prod_value, list) and isinstance(walden_value, list)):
-                passed = False
+            elif test == "<5%":
+                passed = passes_5_percent(prod_value, walden_value)
+            elif test == "-5%+":
+                passed = passes_5_percent_or_more(prod_value, walden_value)
             else:
-                passed = passes_5_percent(len(prod_value), len(walden_value))
-
-        elif field_type == "array|≥":
-            if not (isinstance(prod_value, list) and isinstance(walden_value, list)):
-                passed = False
-            else:
-                passed = len(walden_value) >= len(prod_value)
-
-        elif field_type == "object":
-            passed = deep_equal(prod_value, walden_value)
+                passed = prod_value == walden_value
 
         elif field_type == "array":
-            passed = deep_equal(prod_value, walden_value)
+            if test == "fill-in":
+                passed = (prod_value is None and isinstance(walden_value, list)) \
+                            or deep_equal(prod_value, walden_value)
+            elif test == "exists-fill-in":
+                passed = (prod_value is None and walden_value is None) \
+                            or (isinstance(prod_value, list)) and isinstance(walden_value, list)
+            elif not (isinstance(prod_value, list) and isinstance(walden_value, list)):
+                passed = False
+            elif test == "≥":
+                passed = len(prod_value) <= len(walden_value)
+            elif test == "<5%":
+                passed = passes_5_percent(len(prod_value), len(walden_value))
+            elif test == "-5%+":
+                passed = passes_5_percent_or_more(len(prod_value), len(walden_value))
+            elif test == "count =":
+                passed = len(prod_value) == len(walden_value)
+            elif test == "set =":
+                passed = set(prod_value) == set(walden_value)
+            else:
+                passed = deep_equal(prod_value, walden_value)
 
-        else:
-            passed = prod_value == walden_value
+        elif field_type == "string":
+            if test == "fill-in":
+                passed = (prod_value is None and isinstance(walden_value, str)) \
+                            or prod_value == walden_value
+            elif test == "exists-fill-in":
+                passed = (prod_value is None and walden_value is None) \
+                            or (isinstance(prod_value, str)) and isinstance(walden_value, str)
+            elif not (isinstance(prod_value, str) and isinstance(walden_value, str)):
+                passed = False
+            elif test == "len <5%":
+                passed = passes_5_percent(len(prod_value), len(walden_value))
+            else:
+                passed = prod_value == walden_value
+
+        elif field_type == "object":
+            if test == "fill-in":
+                passed = (prod_value is None and isinstance(walden_value, dict)) \
+                            or deep_equal(prod_value, walden_value)
+            elif test == "exists-fill-in":
+                passed = (prod_value is None and walden_value is None) \
+                            or (isinstance(prod_value, dict)) and isinstance(walden_value, dict) 
+            else:
+                passed = deep_equal(prod_value, walden_value)
+
         
         match[field] = passed
         
@@ -443,7 +531,7 @@ def save_data():
     print(f"Saved recall data and match rates to database")
 
 
-async def run_metrics():
+async def run_metrics(test=False):
     samples = get_latest_prod_samples()
     
     # Create tasks for all samples to run in parallel
@@ -462,7 +550,8 @@ async def run_metrics():
     calc_recall()
 
     # Save data to database
-    save_data()
+    if not test:
+        save_data()
 
 
 def get_latest_prod_samples():

@@ -6,6 +6,7 @@ from flask_cors import CORS
 
 from models import MetricSet, Response
 from metrics import get_latest_sample
+from schema import schema, test_fields
 
 logger = logging.getLogger("metrics-api")
 
@@ -121,6 +122,11 @@ def responses_endpoint():
                 ordered_responses.append(responses_dict[id].to_dict())
     
     return jsonify(ordered_responses)
+
+
+@app.route("/schema", methods=["GET"])
+def schema_endpoint():
+    return jsonify({"schema": schema, "testFields": test_fields})
 
 
 if __name__ == "__main__":
