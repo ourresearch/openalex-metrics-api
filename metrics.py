@@ -190,12 +190,16 @@ def id_filter_field(entity):
     return "id" if entity in uses_id else "ids.openalex"
 
 
+def is_test_count_field(field):
+    return field in ["authorships.id", "authorships.institutions.id", "authorships.countries", "concepts.id", "topics.id"]
+
+
 def get_field_value(obj, field):
     """Get nested field value from object using dot notation"""
     if obj is None:
         return None
     
-    if field in ["authorships.id", "authorships.institutions.id", "authorships.countries", "concepts.id", "topics.id"]:
+    if is_test_count_field(field):
         return get_nested_strings(obj, field)
     
     keys = field.split('.')
@@ -257,19 +261,6 @@ def get_nested_strings(obj, field):
     return _extract_strings(obj, keys)
 
 
-def count_institutions(obj):
-    if obj is None:
-        return 0
-    
-    institutions_set = set()
-    authorships = obj.get("authorships", []) or []
-    for authorship in authorships:
-        institutions = authorship.get("institutions", []) or []
-        for institution in institutions:
-            institutions_set.add(institution.get("id"))
-    return len(institutions_set)
-
-
 def deep_equal(obj1, obj2):
     """Deep equality comparison similar to lodash _.isEqual"""
     if obj1 is obj2:
@@ -323,7 +314,7 @@ def calc_match(prod, walden, entity):
 
         return passes_5_percent(prod_value, walden_value)
 
-    match = {}
+    match = {"_test_values": {}}
     
     # Iterate through all fields in the schema for this entity type
     for field in schema[entity]:
@@ -337,6 +328,17 @@ def calc_match(prod, walden, entity):
         prod_value = get_field_value(prod, field)
         walden_value = get_field_value(walden, field)
         
+        if is_test_count_field(field):
+            if test == "set =":
+                match["_test_values"][field] = {
+                    "prod": len(set(prod_value)) if isinstance(prod_value, list) else prod_value,
+                    "walden": len(set(walden_value)) if isinstance(walden_value, list) else walden_value
+                }
+            else:
+                match["_test_values"][field] = {
+                    "prod": len(prod_value) if isinstance(prod_value, list) else prod_value,
+                    "walden": len(walden_value) if isinstance(walden_value, list) else walden_value
+                }
 
         if prod and not walden:
             passed = False
