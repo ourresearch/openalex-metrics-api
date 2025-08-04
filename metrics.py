@@ -404,7 +404,9 @@ def calc_match(prod, walden, entity):
             else:
                 passed = deep_equal(prod_value, walden_value)
 
-        
+        elif field_type == "boolean":
+            passed = prod_value == walden_value
+            
         match[field] = passed
         
     _test_fields = test_fields.get(entity, []);

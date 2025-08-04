@@ -36,7 +36,7 @@ schema = {
     "cited_by_api_url": "string",
     "cited_by_count": "number|<5%",
     "concepts": "array",
-    "concepts.id": "array.object.string|set =",
+    "concepts.id": "array|set =",
     "corresponding_author_ids": "array",
     "corresponding_institution_ids": "array",
     "countries_distinct_count": "number",
