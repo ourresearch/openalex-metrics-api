@@ -36,17 +36,14 @@ def match_rates_endpoint(entity):
 @app.route("/responses", methods=["GET"])
 def responses_endpoint():
     page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 100))
     filter_failing = request.args.get("filterFailing", False)
     if filter_failing:
         filter_failing = filter_failing.split(",")
-    id_order = request.args.get("idOrder", False)
     sample = get_latest_sample("works")
     
     if not sample or not sample.ids:
         return jsonify([])
-    
-    # Calculate pagination
-    per_page = 100
     
     if filter_failing:
         from sqlalchemy import text, func
@@ -58,29 +55,31 @@ def responses_endpoint():
         
         filter_clause = " AND ".join(filter_conditions)
         
+        # Calculate total results count for filtered data
+        count_sql = text(f"""
+            SELECT COUNT(*)
+            FROM responses r
+            WHERE r.id = ANY(:sample_ids)
+            AND {filter_clause}
+        """)
+        
+        count_result = db.session.execute(count_sql, {
+            'sample_ids': sample.ids
+        })
+        total_results_count = count_result.scalar()
+        
         # Calculate offset
         offset = (page - 1) * per_page
         
-        if id_order:
-            # Alternative approach: Order by Response.id for speed comparison
-            sql = text(f"""
-                SELECT r.id, r.entity, r.date, r.prod, r.walden, r.match
-                FROM responses r
-                WHERE r.id = ANY(:sample_ids)
-                AND {filter_clause}
-                ORDER BY r.id
-                LIMIT :limit OFFSET :offset
-            """)
-        else:
-            # Original approach: Order by sample position
-            sql = text(f"""
-                SELECT r.id, r.entity, r.date, r.prod, r.walden, r.match
-                FROM responses r
-                WHERE r.id = ANY(:sample_ids)
-                AND {filter_clause}
-                ORDER BY array_position(:sample_ids, r.id)
-                LIMIT :limit OFFSET :offset
-            """)
+        # Order by sample position
+        sql = text(f"""
+            SELECT r.id, r.entity, r.date, r.prod, r.walden, r.match
+            FROM responses r
+            WHERE r.id = ANY(:sample_ids)
+            AND {filter_clause}
+            ORDER BY array_position(:sample_ids, r.id)
+            LIMIT :limit OFFSET :offset
+        """)
         
         # Execute the query
         result = db.session.execute(sql, {
@@ -121,7 +120,17 @@ def responses_endpoint():
             if id in responses_dict:
                 ordered_responses.append(responses_dict[id].to_dict())
     
-    return jsonify(ordered_responses)
+        total_results_count = len(sample.ids)
+    
+    return jsonify({
+        "meta": {
+            "page": page,
+            "per_page": per_page,
+            "sample_size": len(sample.ids),
+            "count": total_results_count
+        },
+        "results":ordered_responses
+    })
 
 
 @app.route("/schema", methods=["GET"])
