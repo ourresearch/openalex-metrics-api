@@ -65,6 +65,7 @@ schema = {
     "open_access.any_repository_has_fulltext": "boolean",
     "primary_location.is_oa": "boolean",
     "primary_location.source.id": "string|fill-in",
+    "primary_location.source.display_name": "string",
     "primary_location.source.is_in_doaj": "boolean",
     "primary_location.source.is_core": "boolean",
     "primary_location.source.is_indexed_in_scopus": "boolean",
