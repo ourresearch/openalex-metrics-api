@@ -4,8 +4,7 @@ from flask import jsonify, request
 from app import app, db
 from flask_cors import CORS
 
-from models import MetricSet, Response
-from metrics import get_latest_sample
+from models import MetricSet, Response, Sample
 from schema import schema, test_fields
 
 logger = logging.getLogger("metrics-api")
@@ -19,18 +18,22 @@ def base_endpoint():
     })
 
 
-@app.route("/recall", methods=["GET"])
-def recall_endpoint():
-    # return the latest metricset with type: "recall"
-    metricset = MetricSet.query.filter_by(type="recall").order_by(MetricSet.date.desc()).first()
+@app.route("/coverage", methods=["GET"])
+def coverage_endpoint():
+    # return the latest metricset with type: "coverage"
+    metricset = MetricSet.query.filter_by(type="coverage").order_by(MetricSet.date.desc()).first()
     return jsonify(metricset.to_dict())
 
 
-@app.route("/field-match/<entity>", methods=["GET"])
-def match_rates_endpoint(entity):
+@app.route("/match-rates", methods=["GET"])
+def match_rates_endpoint():
     # return the latest metricset with type: "match_rates"
-    metricset = MetricSet.query.filter_by(type="field_match_rates", entity=entity).order_by(MetricSet.date.desc()).first()
+    metricset = MetricSet.query.filter_by(type="match_rates").order_by(MetricSet.date.desc()).first()
     return jsonify(metricset.to_dict())
+
+
+def get_latest_sample(entity, type_="prod"):
+    return db.session.query(Sample).filter_by(entity=entity, type=type_).order_by(Sample.date.desc()).first()
 
 
 @app.route("/responses", methods=["GET"])
@@ -40,6 +43,7 @@ def responses_endpoint():
     filter_failing = request.args.get("filterFailing", False)
     if filter_failing:
         filter_failing = filter_failing.split(",")
+    
     sample = get_latest_sample("works")
     
     if not sample or not sample.ids:
@@ -129,7 +133,7 @@ def responses_endpoint():
             "sample_size": len(sample.ids),
             "count": total_results_count
         },
-        "results":ordered_responses
+        "results": ordered_responses
     })
 
 

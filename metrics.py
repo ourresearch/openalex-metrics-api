@@ -5,26 +5,30 @@ import time
 import random
 from datetime import datetime
 from math import ceil
-from models import Sample, MetricSet, Response
-from collections import defaultdict, deque
-from app import db
+from contextlib import contextmanager
 from email.utils import parsedate_to_datetime
+from collections import defaultdict, deque
 
-from schema import schema, canonical_ids, test_fields, sum_fields
+from models import Sample, MetricSet, Response
+from app import db
+from schema import schema, test_fields, sum_fields
 
 OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 
 api_endpoint = "https://api.openalex.org/"
 
+samples = defaultdict(dict)
 prod_results = defaultdict(dict)
 walden_results = defaultdict(dict)
 matches = defaultdict(dict)
 match_rates = defaultdict(dict)
-recall = defaultdict(dict)
+coverage = defaultdict(dict)
 sum_fields_store = defaultdict(dict)
 
 MAX_REQUESTS_PER_SECOND = 100
 rate_limiter = None
+headers = {'Authorization': f'Bearer {OPENALEX_API_KEY}'}
+
 
 class RateLimiter:
     def __init__(self, max_requests_per_second):
@@ -67,9 +71,7 @@ async def fetch_all_ids(ids, entity):
         rate_limiter = RateLimiter(MAX_REQUESTS_PER_SECOND)
     
     n_groups = ceil(len(ids) / 100)
-    
-    headers = {'Authorization': f'Bearer {OPENALEX_API_KEY}'}
-    
+        
     async with aiohttp.ClientSession(headers=headers) as session:
         tasks = []
         for i in range(n_groups):
@@ -410,7 +412,7 @@ def calc_match(prod, walden, entity):
         match[field] = passed
         
     _test_fields = test_fields.get(entity, []);
-    match["testsPassed"] = all(match[field] for field in _test_fields) if len(_test_fields) > 0 else False
+    match["_tests_passed"] = all(match[field] for field in _test_fields) if len(_test_fields) > 0 else False
 
     return match
 
@@ -418,17 +420,17 @@ def calc_match(prod, walden, entity):
 def calc_matches():
     entities = ["works", "authors", "sources", "institutions", "publishers"]
     for entity in entities:
-      for id in prod_results[entity]:
+      for id in samples[entity]["prod"]["ids"]:
         matches[entity][id] = calc_match(prod_results[entity][id], walden_results[entity][id], entity)
 
 
 def calc_match_rates():
     entities = ["works"]
     for entity in entities:
-      fields = list(schema[entity].keys()) + ["testsPassed"]
+      fields = list(schema[entity].keys()) + ["_tests_passed"]
       count = defaultdict(int)
       hits = defaultdict(int)
-      for id in prod_results[entity]:
+      for id in samples[entity]["prod"]["ids"]:
         for field in fields:
           if matches[entity][id][field]:
             hits[field] += 1
@@ -436,6 +438,11 @@ def calc_match_rates():
             
       for field in fields:
         match_rates[entity][field] = round(100 * hits[field] / count[field])
+
+      average_sum = 0
+      for field in list(schema[entity].keys()):
+        average_sum += match_rates[entity][field]
+      match_rates[entity]["_average"] = round(average_sum / len(schema[entity]))
 
     print(match_rates)
 
@@ -458,91 +465,169 @@ def calc_sum_fields():
       }
     
   
-def calc_recall():
-    for entity in prod_results:
+def calc_all_coverage():
+    calc_coverage("prod")
+    calc_coverage("walden")
+
+
+def calc_coverage(type):
+    test_store = walden_results if type == "prod" else prod_results
+    for entity in samples.keys():
         count = 0
         hits = 0
-        id_hits = 0
-        recall[entity] = {}
-        for id in prod_results[entity]:
-            if walden_results[entity][id]:
-                hits += 1
-            count += 1
-            if entity in canonical_ids:
-              if matches[entity][id][canonical_ids[entity]]:
-                id_hits += 1
-        recall[entity]["recall"] = round(100 * hits / count)
-        recall[entity]["canonicalId"] = round(100 * id_hits / count) if entity in canonical_ids else "-"
-        recall[entity]["sampleSize"] = count
-        print(f"Recall for {entity}: {recall[entity]}")
+        if not coverage[entity]:
+            coverage[entity] = {}
+        if type in samples[entity]:
+            for id in samples[entity][type]["ids"]:
+                if test_store[entity][id]:
+                    hits += 1
+                count += 1
+        coverage[entity][type] = {
+            "coverage": round(100 * hits / count) if count > 0 else "-",
+            "sampleSize": count
+        }
+
+
+async def get_entity_counts():
+    async def get_entity_count(session, url, entity, type_):
+        async with session.get(url) as response:
+            if response.status == 200:
+                data = await response.json()
+                coverage[entity][type_]["count"] = data["meta"]["count"]
+
+    async with aiohttp.ClientSession(headers=headers) as session:
+        tasks = []
+        for entity in samples.keys():
+            # You may need to adjust api_endpoint to ensure it ends with a slash if needed
+            tasks.append(get_entity_count(session, api_endpoint + entity, entity, "prod"))
+            tasks.append(get_entity_count(session, api_endpoint + entity + "?data-version=2", entity, "walden"))       
+        await asyncio.gather(*tasks)
+
+
+@contextmanager
+def db_session():
+    """Context manager for database sessions with proper cleanup and timeout"""
+    session = db.session
+    try:
+        # Set statement timeout to prevent hanging queries
+        # session.execute("SET statement_timeout = '180s'")
+        yield session
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        print(f"Database error: {e}")
+        raise
+    finally:
+        session.close()
 
 
 def save_data():
-    recall_data = dict(recall)
-    recall_metric_set = MetricSet(
-        type="recall",
-        entity="all",
-        date=datetime.now(),
-        data=recall_data
-    )
+    print("Saving data to database...")
+    start_time = time.time()
+    with db_session() as session:
+        coverage_data = dict(coverage)
+        coverage_metric_set = MetricSet(
+            type="coverage",
+            entity="all",
+            date=datetime.now(),
+            data=coverage_data
+        )
 
-    match_rates_data = {
-      "rates": dict(match_rates["works"]),
-      "sums": dict(sum_fields_store["works"]),
-    }
-    match_rates_metric_set = MetricSet(
-        type="field_match_rates",
-        entity="works",
-        date=datetime.now(),
-        data=match_rates_data
-    )
+        match_rates_data = dict(match_rates)
+        match_rates_metric_set = MetricSet(
+            type="match_rates",
+            entity="all",
+            date=datetime.now(),
+            data=match_rates_data
+        )
 
-    # Bulk upsert optimization for large datasets
-    from sqlalchemy.dialects.postgresql import insert
-    
-    # Prepare bulk data
-    current_time = datetime.now()
-    bulk_data = []
-    for id in prod_results["works"]:
-        bulk_data.append({
-            'id': id,
-            'entity': 'works',
-            'date': current_time,
-            'prod': prod_results["works"][id],
-            'walden': walden_results["works"][id],
-            'match': matches["works"][id]
-        })
-    
-    # PostgreSQL UPSERT - much faster for bulk operations
-    stmt = insert(Response).values(bulk_data)
-    stmt = stmt.on_conflict_do_update(
-        index_elements=['id'],
-        set_={
-            'entity': stmt.excluded.entity,
-            'date': stmt.excluded.date,
-            'prod': stmt.excluded.prod,
-            'walden': stmt.excluded.walden,
-            'match': stmt.excluded.match
-        }
-    )
-    db.session.execute(stmt)
+        # Bulk upsert optimization for large datasets
+        from sqlalchemy.dialects.postgresql import insert
+        
+        # Prepare bulk data
+        current_time = datetime.now()
+        bulk_data = []
+        for id in samples["works"]["prod"]["ids"]:
+            bulk_data.append({
+                'id': id,
+                'entity': 'works',
+                'date': current_time,
+                'prod': prod_results["works"][id],
+                'walden': walden_results["works"][id],
+                'match': matches["works"][id]
+            })
+        
+        # PostgreSQL UPSERT - much faster for bulk operations
+        stmt = insert(Response).values(bulk_data)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=['id'],
+            set_={
+                'entity': stmt.excluded.entity,
+                'date': stmt.excluded.date,
+                'prod': stmt.excluded.prod,
+                'walden': stmt.excluded.walden,
+                'match': stmt.excluded.match
+            }
+        )
+        session.execute(stmt)
 
-    # Save to database
-    db.session.add(recall_metric_set)
-    db.session.add(match_rates_metric_set)
-    db.session.commit()
+        # Save to database
+        session.add(coverage_metric_set)
+        session.add(match_rates_metric_set)
     
-    print(f"Saved recall data and match rates to database")
+    elapsed_time = time.time() - start_time
+    print(f"Saved metrics and responses to database in {elapsed_time:.2f} seconds")
+
+
+def get_latest_samples(type="prod"):
+    """
+    Return a list of samples, one for each value of "entity" and the most recent only
+    if there is more than one sample for each entity value, only considering samples
+    whose type is "prod".
+    """
+    from sqlalchemy import func
+
+    with db_session() as session:
+        # Subquery to get latest date for each entity
+        latest_dates = (
+            session.query(
+                Sample.entity,
+                func.max(Sample.date).label("max_date")
+            )
+            .filter(Sample.type == type)
+            .group_by(Sample.entity)
+            .subquery()
+        )
+
+        # Select only the columns we need; returns plain tuples
+        latest_samples = (
+            session.query(Sample.entity, Sample.ids, Sample.type)
+            .join(
+                latest_dates,
+                (Sample.entity == latest_dates.c.entity) &
+                (Sample.date == latest_dates.c.max_date)
+            )
+            .filter(Sample.type == type)
+            .all()
+        )
+
+        # latest_samples is now a list of tuples: [(entity, ids), ...]
+        return [{'entity': entity, 'ids': ids, 'type': type} for entity, ids, type in latest_samples]
 
 
 async def run_metrics(test=False):
-    samples = get_latest_prod_samples()
-    
+    latest_samples = get_latest_samples(type="prod")
+    latest_samples += get_latest_samples(type="walden")
+
+    for sample in latest_samples:
+        samples[sample["entity"]][sample["type"]] = sample
+
     # Create tasks for all samples to run in parallel
     tasks = []
-    for sample in samples:
-        ids = sample.ids
-        tasks.append(fetch_all_ids(ids, sample.entity))
+    for sample in latest_samples:
+        ids = sample["ids"]
+        entity = sample["entity"]
+        tasks.append(fetch_all_ids(ids, entity))
     
     # Execute all sample fetching in parallel
     await asyncio.gather(*tasks)
@@ -551,48 +636,11 @@ async def run_metrics(test=False):
     calc_matches()
     calc_match_rates()
     calc_sum_fields()
-    calc_recall()
+    calc_all_coverage()
+    await get_entity_counts()
+
+    print("Coverage:", coverage)
 
     # Save data to database
     if not test:
         save_data()
-
-
-def get_latest_prod_samples():
-    """
-    Return a list of samples, one for each value of "entity" and the most recent only
-    if there is more than one sample for each entity value, only considering samples
-    whose type is "prod".
-    """
-    from sqlalchemy import func
-    
-    # Subquery to find the latest date for each entity with type "prod"
-    latest_dates = (
-        Sample.query
-        .filter(Sample.type == 'prod')
-        .with_entities(
-            Sample.entity,
-            func.max(Sample.date).label('max_date')
-        )
-        .group_by(Sample.entity)
-        .subquery()
-    )
-    
-    # Join with the original table to get the full sample records
-    # for the latest date of each entity
-    latest_samples = (
-        Sample.query
-        .join(
-            latest_dates,
-            (Sample.entity == latest_dates.c.entity) &
-            (Sample.date == latest_dates.c.max_date)
-        )
-        .filter(Sample.type == 'prod')
-        .all()
-    )
-    
-    return latest_samples
-
-
-def get_latest_sample(entity):
-    return Sample.query.filter_by(entity=entity, type="prod").order_by(Sample.date.desc()).first()
