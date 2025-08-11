@@ -32,7 +32,7 @@ def match_rates_endpoint():
     return jsonify(metricset.to_dict())
 
 
-def get_latest_sample(entity, type_="prod"):
+def get_latest_sample(entity, type_="both"):
     return db.session.query(Sample).filter_by(entity=entity, type=type_).order_by(Sample.date.desc()).first()
 
 

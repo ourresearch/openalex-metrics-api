@@ -171,7 +171,7 @@ async def fetch_ids(session, ids, entity, store, is_v2):
                 break
                 
         except Exception as e:
-            print(f"Error fetching {entity} from {url}: {e}")
+            print(f"Error fetching {entity} from {api_url}: {e}")
             break  # Don't retry for other exceptions
         finally:
             # Always release the rate limiter
@@ -418,9 +418,9 @@ def calc_match(prod, walden, entity):
 
 
 def calc_matches():
-    entities = ["works", "authors", "sources", "institutions", "publishers"]
+    entities = ["works"]
     for entity in entities:
-      for id in samples[entity]["prod"]["ids"]:
+      for id in samples[entity]["both"]["ids"]:
         matches[entity][id] = calc_match(prod_results[entity][id], walden_results[entity][id], entity)
 
 
@@ -430,7 +430,7 @@ def calc_match_rates():
       fields = list(schema[entity].keys()) + ["_tests_passed"]
       count = defaultdict(int)
       hits = defaultdict(int)
-      for id in samples[entity]["prod"]["ids"]:
+      for id in samples[entity]["both"]["ids"]:
         for field in fields:
           if matches[entity][id][field]:
             hits[field] += 1
@@ -470,19 +470,19 @@ def calc_all_coverage():
     calc_coverage("walden")
 
 
-def calc_coverage(type):
-    test_store = walden_results if type == "prod" else prod_results
+def calc_coverage(type_):
+    test_store = walden_results if type_ == "prod" else prod_results
     for entity in samples.keys():
         count = 0
         hits = 0
         if not coverage[entity]:
             coverage[entity] = {}
-        if type in samples[entity]:
-            for id in samples[entity][type]["ids"]:
+        if type_ in samples[entity]:
+            for id in samples[entity][type_]["ids"]:
                 if test_store[entity][id]:
                     hits += 1
                 count += 1
-        coverage[entity][type] = {
+        coverage[entity][type_] = {
             "coverage": round(100 * hits / count) if count > 0 else "-",
             "sampleSize": count
         }
@@ -498,7 +498,6 @@ async def get_entity_counts():
     async with aiohttp.ClientSession(headers=headers) as session:
         tasks = []
         for entity in samples.keys():
-            # You may need to adjust api_endpoint to ensure it ends with a slash if needed
             tasks.append(get_entity_count(session, api_endpoint + entity, entity, "prod"))
             tasks.append(get_entity_count(session, api_endpoint + entity + "?data-version=2", entity, "walden"))       
         await asyncio.gather(*tasks)
@@ -547,7 +546,7 @@ def save_data():
         # Prepare bulk data
         current_time = datetime.now()
         bulk_data = []
-        for id in samples["works"]["prod"]["ids"]:
+        for id in samples["works"]["both"]["ids"]:
             bulk_data.append({
                 'id': id,
                 'entity': 'works',
@@ -579,7 +578,7 @@ def save_data():
     print(f"Saved metrics and responses to database in {elapsed_time:.2f} seconds")
 
 
-def get_latest_samples(type="prod"):
+def get_latest_samples(type_):
     """
     Return a list of samples, one for each value of "entity" and the most recent only
     if there is more than one sample for each entity value, only considering samples
@@ -594,7 +593,7 @@ def get_latest_samples(type="prod"):
                 Sample.entity,
                 func.max(Sample.date).label("max_date")
             )
-            .filter(Sample.type == type)
+            .filter(Sample.type == type_)
             .group_by(Sample.entity)
             .subquery()
         )
@@ -607,19 +606,21 @@ def get_latest_samples(type="prod"):
                 (Sample.entity == latest_dates.c.entity) &
                 (Sample.date == latest_dates.c.max_date)
             )
-            .filter(Sample.type == type)
+            .filter(Sample.type == type_)
             .all()
         )
 
         # latest_samples is now a list of tuples: [(entity, ids), ...]
-        return [{'entity': entity, 'ids': ids, 'type': type} for entity, ids, type in latest_samples]
+        return [{'entity': entity, 'ids': ids, 'type': type_} for entity, ids, type_ in latest_samples]
 
 
 async def run_metrics(test=False):
-    latest_samples = get_latest_samples(type="prod")
-    latest_samples += get_latest_samples(type="walden")
+    latest_samples = get_latest_samples(type_="prod")
+    latest_samples += get_latest_samples(type_="walden")
+    latest_samples += get_latest_samples(type_="both")
 
     for sample in latest_samples:
+        print(f"Adding sample {sample['entity']} {sample['type']} with {len(sample['ids'])} IDs")
         samples[sample["entity"]][sample["type"]] = sample
 
     # Create tasks for all samples to run in parallel
