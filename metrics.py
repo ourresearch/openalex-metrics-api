@@ -94,10 +94,11 @@ async def fetch_ids(session, ids, entity, store, is_v2):
         # Acquire rate limit permission
         await rate_limiter.acquire()
         
-        # Extract the part after the last "/" if present, otherwise use the full id
-        clean_ids = [id.split("/")[-1] if "/" in id else id for id in ids]
-        api_url = f"{api_endpoint}{entity}?filter={id_filter_field(entity)}:{'|'.join(clean_ids)}&per_page=100{'&data-version=2' if is_v2 else ''}"
         try:
+            # Extract the part after the last "/" if present, otherwise use the full id
+            clean_ids = [id.split("/")[-1] if "/" in id else id for id in ids]
+            api_url = f"{api_endpoint}{entity}?filter={id_filter_field(entity)}:{'|'.join(clean_ids)}&per_page=100{'&data-version=2' if is_v2 else ''}"
+            
             async with session.get(api_url) as response:
                 if response.status == 200:
                     data = await response.json()
@@ -173,13 +174,10 @@ async def fetch_ids(session, ids, entity, store, is_v2):
         except Exception as e:
             print(f"Error fetching {entity} from {api_url}: {e}")
             break  # Don't retry for other exceptions
+            
         finally:
-            # Always release the rate limiter
+            # Always release the semaphore, regardless of success or failure
             rate_limiter.release()
-    
-    # If we get here, all retries failed - mark all IDs as missing
-    for id in ids:
-        store[entity][id] = None
 
 
 def extract_id(input_str):
@@ -479,7 +477,7 @@ def calc_coverage(type_):
             coverage[entity] = {}
         if type_ in samples[entity]:
             for id in samples[entity][type_]["ids"]:
-                if test_store[entity][id]:
+                if test_store[entity].get(id, None):
                     hits += 1
                 count += 1
         coverage[entity][type_] = {
@@ -600,7 +598,7 @@ def get_latest_samples(type_):
 
         # Select only the columns we need; returns plain tuples
         latest_samples = (
-            session.query(Sample.entity, Sample.ids, Sample.type)
+            session.query(Sample.entity, Sample.ids, Sample.type, Sample.name)
             .join(
                 latest_dates,
                 (Sample.entity == latest_dates.c.entity) &
@@ -611,7 +609,7 @@ def get_latest_samples(type_):
         )
 
         # latest_samples is now a list of tuples: [(entity, ids), ...]
-        return [{'entity': entity, 'ids': ids, 'type': type_} for entity, ids, type_ in latest_samples]
+        return [{'entity': entity, 'ids': ids, 'type': type_, 'name': name} for entity, ids, type_, name in latest_samples]
 
 
 async def run_metrics(test=False):
@@ -620,7 +618,7 @@ async def run_metrics(test=False):
     latest_samples += get_latest_samples(type_="both")
 
     for sample in latest_samples:
-        print(f"Adding sample {sample['entity']} {sample['type']} with {len(sample['ids'])} IDs")
+        print(f"Using sample {sample['name']} ({sample['type']}) with {len(sample['ids'])} IDs")
         samples[sample["entity"]][sample["type"]] = sample
 
     # Create tasks for all samples to run in parallel
