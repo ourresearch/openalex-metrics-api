@@ -1,6 +1,7 @@
 from app import db
 from sqlalchemy.dialects.postgresql import JSONB
 
+
 class Sample(db.Model):
     __tablename__ = 'samples'
     name = db.Column(db.Text, primary_key=True)
