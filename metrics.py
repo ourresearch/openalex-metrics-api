@@ -477,7 +477,7 @@ def calc_coverage(type_):
             coverage[entity] = {}
         if type_ in samples[entity]:
             for id in samples[entity][type_]["ids"]:
-                if test_store[entity][id]:
+                if test_store[entity].get(id, None):
                     hits += 1
                 count += 1
         coverage[entity][type_] = {
