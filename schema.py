@@ -1,19 +1,76 @@
+
+from functools import wraps
+from numbers import Number
+
+
 """
-TEST FUNCTIONS
+Test Helpers
+"""
+def expects_numbers(func):
+  @wraps(func)
+  def wrapper(prod_value, walden_value):
+    if not isinstance(prod_value, Number) or not isinstance(walden_value, Number):
+      return False
+        
+    return func(prod_value, walden_value)
+    
+  return wrapper
+
+def expects_strings(func):
+  @wraps(func)
+  def wrapper(prod_value, walden_value):
+    if not isinstance(prod_value, str) or not isinstance(walden_value, str):
+      return False
+        
+    return func(prod_value, walden_value)
+    
+  return wrapper
+
+def expects_lists(func):
+  @wraps(func)
+  def wrapper(prod_value, walden_value):
+    if not isinstance(prod_value, list) or not isinstance(walden_value, list):
+      return False
+        
+    return func(prod_value, walden_value)
+    
+  return wrapper
+
+
+def is_set_test(func):
+  return func in [set_equals]
+
+
+def get_test_keys(entity, type_="all"):
+  if type_ == "all":
+    tests = tests_schema[entity]
+  elif type_ == "bug":
+    tests = [test for test in tests_schema[entity] if test["test_type"] == "bug"]
+  elif type_ == "feature":
+    tests = [test for test in tests_schema[entity] if test["test_type"] == "feature"]
+
+  return [test["display_name"].replace(" ", "_").lower() for test in tests]
+
+
+"""
+Test Functions
 """
 
 def exact_match(prod_value, walden_value):
   return prod_value == walden_value
 
 
+@expects_numbers
 def greater_than(prod_value, walden_value):
   return prod_value > walden_value
 
 
+@expects_numbers
 def greater_than_or_equal(prod_value, walden_value):
   return prod_value >= walden_value
 
 
+@expects_numbers
 def within_5_percent(prod_value, walden_value):  
   if prod_value == 0 and walden_value == 0:
       return True
@@ -24,22 +81,27 @@ def within_5_percent(prod_value, walden_value):
   return abs((walden_value - prod_value) / prod_value * 100) <= 5
 
 
+@expects_numbers
 def within_5_percent_or_more(prod_value, walden_value):
   return walden_value > prod_value or within_5_percent(prod_value, walden_value)
 
 
+@expects_lists
 def count_within_5_percent(prod_value, walden_value):
   return within_5_percent(len(prod_value), len(walden_value))
 
 
+@expects_strings
 def length_within_5_percent(prod_value, walden_value):
   return within_5_percent(len(prod_value), len(walden_value))
 
 
+@expects_lists
 def count_equals(prod_value, walden_value):
   return len(prod_value) == len(walden_value)
 
 
+@expects_lists
 def set_equals(prod_value, walden_value):
   return set(prod_value) == set(walden_value)
 
@@ -68,35 +130,8 @@ def fill_in_feature(prod_value, walden_value):
   return prod_value is None and walden_value is not None
 
 
-def deep_equals(obj1, obj2):
-    """Deep equality comparison for lists and dicts"""
-    if obj1 is obj2:
-        return True
-    
-    if type(obj1) != type(obj2):
-        return False
-    
-    if isinstance(obj1, dict):
-        if len(obj1) != len(obj2):
-            return False
-        for key in obj1:
-            if key not in obj2 or not deep_equal(obj1[key], obj2[key]):
-                return False
-        return True
-    
-    if isinstance(obj1, list):
-        if len(obj1) != len(obj2):
-            return False
-        for i in range(len(obj1)):
-            if not deep_equal(obj1[i], obj2[i]):
-                return False
-        return True
-    
-    return obj1 == obj2
-
-
 def object_fill_in(prod_value, walden_value):
-  return deep_equals(prod_value, walden_value) or (prod_value is None and walden_value is not None)
+  return prod_value == walden_value or (prod_value is None and walden_value is not None)
 
 
 def exists_fill_in(prod_value, walden_value):
@@ -107,7 +142,7 @@ def exists_fill_in(prod_value, walden_value):
 TEST DEFINITIONS
 """
 
-tests = {
+tests_schema = {
   "works": [
     {
       "display_name": "Title Changed",
@@ -115,6 +150,7 @@ tests = {
       "field_type": "string",
       "test_func": length_within_5_percent,
       "test_type": "bug",
+      "icon": "mdi-format-title"
     },
     {
       "display_name": "Publication Year Changed",
@@ -122,6 +158,7 @@ tests = {
       "field_type": "number",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-calendar-month"
     },
 
     {
@@ -130,6 +167,7 @@ tests = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-lock-open-outline"
     },
     {
       "display_name": "OA Lost",
@@ -137,6 +175,7 @@ tests = {
       "field_type": "boolean",
       "test_func": didnt_become_false,
       "test_type": "bug",
+      "icon": "mdi-lock-open-outline"
     },
     {
       "display_name": "OA Became Null",
@@ -144,6 +183,7 @@ tests = {
       "field_type": "boolean",
       "test_func": didnt_become_null,
       "test_type": "bug",
+      "icon": "mdi-lock-open-outline"
     },
     {
       "display_name": "Source ID Lost",
@@ -151,6 +191,7 @@ tests = {
       "field_type": "string",
       "test_func": fill_in_bug,
       "test_type": "bug",
+      "icon": "mdi-map-marker-account"
     },
     {
       "display_name": "Source ID Added",
@@ -158,6 +199,7 @@ tests = {
       "field_type": "string",
       "test_func": fill_in_feature,
       "test_type": "feature",
+      "icon": "mdi-map-marker-account"
     },
     {
       "display_name": "In DOAJ Changed",
@@ -165,6 +207,7 @@ tests = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-map-marker-check"
     },
     {
       "display_name": "Is Core Changed",
@@ -172,6 +215,7 @@ tests = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-map-marker-check"
     },
     {
       "display_name": "Host Organization Changed",
@@ -179,6 +223,7 @@ tests = {
       "field_type": "string",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-map-marker-star"
     },
 
     {
@@ -187,6 +232,7 @@ tests = {
       "field_type": "string",
       "test_func": fill_in_bug,
       "test_type": "bug",
+      "icon": "mdi-map-marker-account-outline"
     },
     {
       "display_name": "Best OA Source ID Added",
@@ -194,6 +240,7 @@ tests = {
       "field_type": "string",
       "test_func": fill_in_feature,
       "test_type": "feature",
+      "icon": "mdi-map-marker-account-outline"  
     },
     {
       "display_name": "PDF URL Lost",
@@ -201,6 +248,7 @@ tests = {
       "field_type": "string",
       "test_func": exists_fill_in,
       "test_type": "bug",
+      "icon": "mdi-file-pdf-box"
     },
     {
       "display_name": "PDF URL Added",
@@ -208,6 +256,7 @@ tests = {
       "field_type": "string",
       "test_func": fill_in_feature,
       "test_type": "feature",
+      "icon": "mdi-file-pdf-box"
     },
     {
       "display_name": "Best OA License Changed or Lost",
@@ -215,6 +264,7 @@ tests = {
       "field_type": "string",
       "test_func": fill_in_bug,
       "test_type": "bug",
+      "icon": "mdi-license"
     },
     {
       "display_name": "Best OA License Added",
@@ -222,6 +272,7 @@ tests = {
       "field_type": "string",
       "test_func": fill_in_feature,
       "test_type": "feature",
+      "icon": "mdi-license"
     },
     {
       "display_name": "Best OA Is Published",
@@ -229,6 +280,7 @@ tests = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-map-marker-check-outline"
     },
     {
       "display_name": "Best OA Is In DOAJ",
@@ -236,6 +288,7 @@ tests = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-map-marker-check-outline"
     },
 
     {
@@ -244,6 +297,7 @@ tests = {
       "field_type": "boolean",
       "test_func": didnt_become_false,
       "test_type": "bug",
+      "icon": "mdi-lock-open-outline"
     },
     {
       "display_name": "OA Status Change",
@@ -251,6 +305,7 @@ tests = {
       "field_type": "string",
       "test_func": status_equal_except_gold,
       "test_type": "bug",
+      "icon": "mdi-lock-percent-open-outline"
     },
     {
       "display_name": "OA Status Found Gold",
@@ -258,6 +313,7 @@ tests = {
       "field_type": "string",
       "test_func": status_became_gold,
       "test_type": "feature",
+      "icon": "mdi-lock-percent-open-outline"
     },
     {
       "display_name": "OA Has Fulltext Changed",
@@ -265,6 +321,7 @@ tests = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-lock-percent-open-outline"
     },
 
     {
@@ -273,6 +330,7 @@ tests = {
       "field_type": "string",
       "test_func": fill_in_bug,
       "test_type": "bug",
+      "icon": "mdi-translate"
     },
     {
       "display_name": "Language Added",
@@ -280,6 +338,7 @@ tests = {
       "field_type": "string",
       "test_func": fill_in_feature,
       "test_type": "feature",
+      "icon": "mdi-translate"
     },
     {
       "display_name": "Type Changed",
@@ -287,6 +346,7 @@ tests = {
       "field_type": "string",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-shape-outline"
     },
     {
       "display_name": "Indexed In Changed",
@@ -294,6 +354,7 @@ tests = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
+      "icon": "mdi-database-outline"
     },
     {
       "display_name": "Is Retracted Changed",
@@ -301,6 +362,7 @@ tests = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-file-excel-outline"
     },
     {
       "display_name": "Location Lost",
@@ -308,6 +370,7 @@ tests = {
       "field_type": "number",
       "test_func": greater_than_or_equal,
       "test_type": "bug",
+      "icon": "mdi-map-marker-multiple-outline"
     },
     {
       "display_name": "Location Added",
@@ -315,6 +378,7 @@ tests = {
       "field_type": "number",
       "test_func": greater_than,
       "test_type": "feature",
+      "icon": "mdi-map-marker-multiple-outline"
     },
     {
       "display_name": "Referenced Works Count",
@@ -322,6 +386,7 @@ tests = {
       "field_type": "number",
       "test_func": within_5_percent_or_more,
       "test_type": "bug",
+      "icon": "mdi-book-arrow-down-outline"
     },
     {
       "display_name": "Related Works",
@@ -329,6 +394,7 @@ tests = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
+      "icon": "mdi-book-arrow-down-outline"
     },
     {
       "display_name": "Abstract",
@@ -336,6 +402,7 @@ tests = {
       "field_type": "object",
       "test_func": object_fill_in,
       "test_type": "bug",
+      "icon": "mdi-text-box-outline"
     },
     {
       "display_name": "Abstract Added",
@@ -343,13 +410,15 @@ tests = {
       "field_type": "object",
       "test_func": fill_in_feature,
       "test_type": "feature",
+      "icon": "mdi-text-box-outline"
     },
     {
       "display_name": "Grants",
       "field": "grants",
       "field_type": "array",
-      "test_func": deep_equals,
+      "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-cash"
     },
     {
       "display_name": "Authorships",
@@ -357,6 +426,7 @@ tests = {
       "field_type": "array",
       "test_func": count_equals,
       "test_type": "bug",
+      "icon": "mdi-account-multiple-outline"
     },
     {
       "display_name": "Authorships IDs",
@@ -364,6 +434,7 @@ tests = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
+      "icon": "mdi-account-multiple-check-outline"
     },
     {
       "display_name": "Institutions IDs",
@@ -371,6 +442,7 @@ tests = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
+      "icon": "mdi-town-hall"
     },
     {
       "display_name": "Countries",
@@ -378,6 +450,7 @@ tests = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
+      "icon": "mdi-earth"
     },
     {
       "display_name": "Corresponding Author IDs",
@@ -385,6 +458,7 @@ tests = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
+      "icon": "mdi-account-check-outline"
     },
 
     {
@@ -393,6 +467,7 @@ tests = {
       "field_type": "number",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-currency-usd"
     },
     {
       "display_name": "APC Paid",
@@ -400,6 +475,7 @@ tests = {
       "field_type": "number",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-currency-usd"
     },
 
     {
@@ -408,6 +484,7 @@ tests = {
       "field_type": "string",
       "test_func": exact_match,
       "test_type": "bug",
+      "icon": "mdi-tag-outline"
     },
     {
       "display_name": "Topic IDs",
@@ -415,6 +492,7 @@ tests = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
+      "icon": "mdi-tag-text-outline"
     },
     {
       "display_name": "Keywords Lost",
@@ -422,6 +500,7 @@ tests = {
       "field_type": "array",
       "test_func": exists_fill_in,
       "test_type": "bug",
+      "icon": "mdi-alpha-k"
     },
     {
       "display_name": "Keywords Added",
@@ -429,6 +508,7 @@ tests = {
       "field_type": "array",
       "test_func": fill_in_feature,
       "test_type": "feature",
+      "icon": "mdi-alpha-k"
     },
     {
       "display_name": "Concept IDs",
@@ -436,6 +516,7 @@ tests = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
+      "icon": "mdi-lightbulb-outline"
     },
     {
       "display_name": "SDG IDs",
@@ -443,6 +524,7 @@ tests = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
+      "icon": "mdi-sprout-outline"
     },
   ]
 }

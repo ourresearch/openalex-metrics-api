@@ -5,7 +5,7 @@ from app import app, db
 from flask_cors import CORS
 
 from models import MetricSet, Response, Sample
-from schema import schema, test_fields
+from schema import tests_schema
 
 logger = logging.getLogger("metrics-api")
 
@@ -16,6 +16,18 @@ def base_endpoint():
     return jsonify({
         "msg": "Don't panic"
     })
+
+
+@app.route("/schema", methods=["GET"])
+def schema_endpoint():
+    tests_schema_serializable = {
+        entity: [
+            {**test, "test_func": test.get("test_func").__name__, "key": test.get("display_name").replace(" ", "_").lower()}
+            for test in tests
+        ]
+        for entity, tests in tests_schema.items()
+    }
+    return jsonify({"tests_schema": tests_schema_serializable})
 
 
 @app.route("/coverage", methods=["GET"])
@@ -135,11 +147,6 @@ def responses_endpoint():
         },
         "results": ordered_responses
     })
-
-
-@app.route("/schema", methods=["GET"])
-def schema_endpoint():
-    return jsonify({"schema": schema, "testFields": test_fields})
 
 
 if __name__ == "__main__":

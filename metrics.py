@@ -11,7 +11,7 @@ from collections import defaultdict, deque
 
 from models import Sample, MetricSet, Response
 from app import db
-from schema import schema, test_fields, sum_fields
+from schema import tests_schema, is_set_test, get_test_keys
 
 OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 
@@ -23,7 +23,6 @@ walden_results = defaultdict(dict)
 matches = defaultdict(dict)
 match_rates = defaultdict(dict)
 coverage = defaultdict(dict)
-sum_fields_store = defaultdict(dict)
 
 MAX_REQUESTS_PER_SECOND = 100
 rate_limiter = None
@@ -190,16 +189,12 @@ def id_filter_field(entity):
     return "id" if entity in uses_id else "ids.openalex"
 
 
-def is_test_count_field(field):
-    return field in ["authorships.id", "authorships.institutions.id", "authorships.countries", "concepts.id", "topics.id"]
-
-
 def get_field_value(obj, field):
     """Get nested field value from object using dot notation"""
     if obj is None:
         return None
     
-    if is_test_count_field(field):
+    if "*" in field:
         return get_nested_strings(obj, field)
     
     keys = field.split('.')
@@ -216,16 +211,35 @@ def get_field_value(obj, field):
 
 def get_nested_strings(obj, field):
     """
-    Extract strings from nested structures with auto-detection.
+    Extract strings from nested structures using JSONPath format.
     Handles patterns like:
-    - array.object.string: "authorships.id"
-    - array.object.array.string: "authorships.countries" 
-    - array.object.array.object.string: "authorships.institutions.id"
+    - "authorships[*].id"
+    - "authorships[*].institutions[*].id"
+    - "authorships[*].countries"
     """
-    def _extract_strings(current_obj, remaining_keys):
-        """Recursive helper to extract strings from nested structure"""
-        if not remaining_keys:
-            # No more keys - collect strings from current value
+    import re
+    
+    def _parse_jsonpath(path):
+        """Parse JSONPath into tokens, handling [*] syntax"""
+        # Split on dots but preserve [*] markers
+        tokens = []
+        parts = path.split('.')
+        
+        for part in parts:
+            if '[*]' in part:
+                # Split field[*] into field and [*]
+                field_name = part.replace('[*]', '')
+                tokens.append(field_name)
+                tokens.append('[*]')
+            else:
+                tokens.append(part)
+        
+        return tokens
+    
+    def _extract_strings(current_obj, remaining_tokens):
+        """Recursive helper to extract strings from nested structure using JSONPath tokens"""
+        if not remaining_tokens:
+            # No more tokens - collect strings from current value
             if isinstance(current_obj, str):
                 return [current_obj]
             elif isinstance(current_obj, list):
@@ -234,184 +248,64 @@ def get_nested_strings(obj, field):
             else:
                 return []
         
-        # More keys to process
-        next_key = remaining_keys[0]
-        rest_keys = remaining_keys[1:]
+        # More tokens to process
+        next_token = remaining_tokens[0]
+        rest_tokens = remaining_tokens[1:]
         
-        if isinstance(current_obj, list):
-            # Current level is an array - iterate through items
-            strings = []
-            for item in current_obj:
-                if isinstance(item, dict) and next_key in item:
-                    strings.extend(_extract_strings(item[next_key], rest_keys))
-            return strings
-            
-        elif isinstance(current_obj, dict) and next_key in current_obj:
-            # Current level is an object - access the next key
-            return _extract_strings(current_obj[next_key], rest_keys)
-            
+        if next_token == '[*]':
+            # Array wildcard - iterate through all items
+            if isinstance(current_obj, list):
+                strings = []
+                for item in current_obj:
+                    strings.extend(_extract_strings(item, rest_tokens))
+                return strings
+            else:
+                return []
+                
         else:
-            # Invalid structure or missing key
-            return []
+            # Regular field access
+            if isinstance(current_obj, dict) and next_token in current_obj:
+                return _extract_strings(current_obj[next_token], rest_tokens)
+            else:
+                # Invalid structure or missing key
+                return []
     
     if obj is None:
         return []
     
-    keys = field.split('.')
-    return _extract_strings(obj, keys)
-
-
-def deep_equal(obj1, obj2):
-    """Deep equality comparison similar to lodash _.isEqual"""
-    if obj1 is obj2:
-        return True
-    
-    if type(obj1) != type(obj2):
-        return False
-    
-    if isinstance(obj1, dict):
-        if len(obj1) != len(obj2):
-            return False
-        for key in obj1:
-            if key not in obj2 or not deep_equal(obj1[key], obj2[key]):
-                return False
-        return True
-    
-    if isinstance(obj1, list):
-        if len(obj1) != len(obj2):
-            return False
-        for i in range(len(obj1)):
-            if not deep_equal(obj1[i], obj2[i]):
-                return False
-        return True
-    
-    return obj1 == obj2
+    tokens = _parse_jsonpath(field)
+    return _extract_strings(obj, tokens)
 
 
 def calc_match(prod, walden, entity):
     """Calculate matches between a prod and a walden result"""
     
-    def passes_5_percent(prod_value, walden_value):
-        """Check if values are within 5% of each other"""
-        if type(prod_value) != type(walden_value):
-            return False
-        
-        if prod_value == 0 and walden_value == 0:
-            return True
-
-        if prod_value == 0:
-            return False
-
-        return abs((walden_value - prod_value) / prod_value * 100) <= 5
-
-    def passes_5_percent_or_more(prod_value, walden_value):
-        """Check if values are within 5% of each other or more"""
-        if type(prod_value) != type(walden_value):
-            return False
-        
-        if walden_value >= prod_value:
-            return True
-
-        return passes_5_percent(prod_value, walden_value)
-
     match = {"_test_values": {}}
     
-    # Iterate through all fields in the schema for this entity type
-    for field in schema[entity]:
-        field_type_and_test = schema[entity][field]
-        parts = field_type_and_test.split('|')
-        field_type = parts[0]
-        test = parts[1] if len(parts) > 1 else None
-        
+    # Iterate through all tests in the schema for this entity type
+    for test in tests_schema[entity]:
+
         passed = False
         
-        prod_value = get_field_value(prod, field)
-        walden_value = get_field_value(walden, field)
+        test_key = test["display_name"].replace(" ", "_").lower()
+        prod_value = get_field_value(prod, test["field"])
+        walden_value = get_field_value(walden, test["field"])
         
-        if is_test_count_field(field):
-            if test == "set =":
-                match["_test_values"][field] = {
+        # Store comparison values if they differ from raw values
+        if "*" in test["field"]:
+            if is_set_test(test["test_func"]):
+                match["_test_values"][test_key] = {
                     "prod": len(set(prod_value)) if isinstance(prod_value, list) else prod_value,
                     "walden": len(set(walden_value)) if isinstance(walden_value, list) else walden_value
                 }
             else:
-                match["_test_values"][field] = {
+                match["_test_values"][test_key] = {
                     "prod": len(prod_value) if isinstance(prod_value, list) else prod_value,
                     "walden": len(walden_value) if isinstance(walden_value, list) else walden_value
                 }
-
-        if prod and not walden:
-            passed = False
-
-        elif prod_value is None and walden_value is None:
-            passed = True
-
-        elif field_type == "number":
-            if type(prod_value) != type(walden_value):
-                passed = False
-            elif test == "≥":
-                passed = prod_value <= walden_value
-            elif test == "<5%":
-                passed = passes_5_percent(prod_value, walden_value)
-            elif test == "-5%+":
-                passed = passes_5_percent_or_more(prod_value, walden_value)
-            else:
-                passed = prod_value == walden_value
-
-        elif field_type == "array":
-            if test == "fill-in":
-                passed = (prod_value is None and isinstance(walden_value, list)) \
-                            or deep_equal(prod_value, walden_value)
-            elif test == "exists-fill-in":
-                passed = (prod_value is None and walden_value is None) \
-                            or (isinstance(prod_value, list)) and isinstance(walden_value, list)
-            elif not (isinstance(prod_value, list) and isinstance(walden_value, list)):
-                passed = False
-            elif test == "≥":
-                passed = len(prod_value) <= len(walden_value)
-            elif test == "<5%":
-                passed = passes_5_percent(len(prod_value), len(walden_value))
-            elif test == "-5%+":
-                passed = passes_5_percent_or_more(len(prod_value), len(walden_value))
-            elif test == "count =":
-                passed = len(prod_value) == len(walden_value)
-            elif test == "set =":
-                passed = set(prod_value) == set(walden_value)
-            else:
-                passed = deep_equal(prod_value, walden_value)
-
-        elif field_type == "string":
-            if test == "fill-in":
-                passed = (prod_value is None and isinstance(walden_value, str)) \
-                            or prod_value == walden_value
-            elif test == "exists-fill-in":
-                passed = (prod_value is None and walden_value is None) \
-                            or (isinstance(prod_value, str)) and isinstance(walden_value, str)
-            elif not (isinstance(prod_value, str) and isinstance(walden_value, str)):
-                passed = False
-            elif test == "len <5%":
-                passed = passes_5_percent(len(prod_value), len(walden_value))
-            else:
-                passed = prod_value == walden_value
-
-        elif field_type == "object":
-            if test == "fill-in":
-                passed = (prod_value is None and isinstance(walden_value, dict)) \
-                            or deep_equal(prod_value, walden_value)
-            elif test == "exists-fill-in":
-                passed = (prod_value is None and walden_value is None) \
-                            or (isinstance(prod_value, dict)) and isinstance(walden_value, dict) 
-            else:
-                passed = deep_equal(prod_value, walden_value)
-
-        elif field_type == "boolean":
-            passed = prod_value == walden_value
             
-        match[field] = passed
+        match[test_key] = test["test_func"](prod_value, walden_value)
         
-    _test_fields = test_fields.get(entity, []);
-    match["_tests_passed"] = all(match[field] for field in _test_fields) if len(_test_fields) > 0 else False
-
     return match
 
 
@@ -425,44 +319,29 @@ def calc_matches():
 def calc_match_rates():
     entities = ["works"]
     for entity in entities:
-      fields = list(schema[entity].keys()) + ["_tests_passed"]
+      test_keys = get_test_keys(entity)
       count = defaultdict(int)
       hits = defaultdict(int)
       for id in samples[entity]["both"]["ids"]:
-        for field in fields:
-          if matches[entity][id][field]:
-            hits[field] += 1
-          count[field] += 1
+        for test_key in test_keys:
+          if matches[entity][id][test_key]:
+            hits[test_key] += 1
+          count[test_key] += 1
             
-      for field in fields:
-        match_rates[entity][field] = round(100 * hits[field] / count[field])
+      for test_key in test_keys:
+        match_rates[entity][test_key] = round(100 * hits[test_key] / count[test_key])
 
-      average_sum = 0
-      for field in list(schema[entity].keys()):
-        average_sum += match_rates[entity][field]
-      match_rates[entity]["_average"] = round(average_sum / len(schema[entity]))
+      # Calculate average match rates for bug and feature tests
+      for type_ in ["bug", "feature"]:
+        test_keys = get_test_keys(entity, type_=type_)
+        average_sum = 0
+        for test_key in test_keys:
+          average_sum += match_rates[entity][test_key]
+        match_rates[entity][f"_average_{type_}"] = round(average_sum / len(test_keys))
 
     print(match_rates)
 
 
-def calc_sum_fields():
-  entities = ["works"]
-  def sum_field(field, store):
-    sum = 0
-    for id in store:
-      if store[id] and isinstance(store[id][field], list):
-        sum += len(store[id][field])
-    return sum
-
-  for entity in entities:
-    sum_fields_store[entity] = {}
-    for field in sum_fields[entity]:
-      sum_fields_store[entity][field] = {
-        "prod": sum_field(field, prod_results[entity]),
-        "walden": sum_field(field, walden_results[entity])
-      }
-    
-  
 def calc_all_coverage():
     calc_coverage("prod")
     calc_coverage("walden")
@@ -634,7 +513,6 @@ async def run_metrics(test=False):
     # Calculate recall after all data is fetched
     calc_matches()
     calc_match_rates()
-    calc_sum_fields()
     calc_all_coverage()
     await get_entity_counts()
 
