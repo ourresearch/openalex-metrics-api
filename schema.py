@@ -170,7 +170,7 @@ tests_schema = {
       "icon": "mdi-lock-open-outline"
     },
     {
-      "display_name": "OA Lost",
+      "display_name": "Primary OA Lost",
       "field": "primary_location.is_oa",
       "field_type": "boolean",
       "test_func": didnt_become_false,
@@ -227,7 +227,7 @@ tests_schema = {
     },
 
     {
-      "display_name": "Best OA Source ID Changed or Lost",
+      "display_name": "Best OA Source ID Changed",
       "field": "best_oa_location.source.id",
       "field_type": "string",
       "test_func": fill_in_bug,
@@ -259,7 +259,7 @@ tests_schema = {
       "icon": "mdi-file-pdf-box"
     },
     {
-      "display_name": "Best OA License Changed or Lost",
+      "display_name": "Best OA License Changed",
       "field": "best_oa_location.source.license",
       "field_type": "string",
       "test_func": fill_in_bug,
@@ -275,7 +275,7 @@ tests_schema = {
       "icon": "mdi-license"
     },
     {
-      "display_name": "Best OA Is Published",
+      "display_name": "Best OA Is Published Changed",
       "field": "best_oa_location.source.is_published",
       "field_type": "boolean",
       "test_func": exact_match,
@@ -283,7 +283,7 @@ tests_schema = {
       "icon": "mdi-map-marker-check-outline"
     },
     {
-      "display_name": "Best OA Is In DOAJ",
+      "display_name": "Best OA Is In DOAJ Changed",
       "field": "best_oa_location.source.is_in_doaj",
       "field_type": "boolean",
       "test_func": exact_match,
@@ -300,7 +300,7 @@ tests_schema = {
       "icon": "mdi-lock-open-outline"
     },
     {
-      "display_name": "OA Status Change",
+      "display_name": "OA Status Changed",
       "field": "open_access.oa_status",
       "field_type": "string",
       "test_func": status_equal_except_gold,
@@ -381,7 +381,7 @@ tests_schema = {
       "icon": "mdi-map-marker-multiple-outline"
     },
     {
-      "display_name": "Referenced Works Count",
+      "display_name": "Referenced Works Count Differ",
       "field": "referenced_works_count",
       "field_type": "number",
       "test_func": within_5_percent_or_more,
@@ -389,7 +389,7 @@ tests_schema = {
       "icon": "mdi-book-arrow-down-outline"
     },
     {
-      "display_name": "Related Works",
+      "display_name": "Related Works Differ",
       "field": "related_works",
       "field_type": "array",
       "test_func": set_equals,
@@ -397,7 +397,7 @@ tests_schema = {
       "icon": "mdi-book-arrow-down-outline"
     },
     {
-      "display_name": "Abstract",
+      "display_name": "Abstract Lost",
       "field": "abstract_inverted_index",
       "field_type": "object",
       "test_func": object_fill_in,
@@ -413,7 +413,7 @@ tests_schema = {
       "icon": "mdi-text-box-outline"
     },
     {
-      "display_name": "Grants",
+      "display_name": "Grants Differ",
       "field": "grants",
       "field_type": "array",
       "test_func": exact_match,
@@ -421,7 +421,7 @@ tests_schema = {
       "icon": "mdi-cash"
     },
     {
-      "display_name": "Authorships",
+      "display_name": "Authorships Count Differ",
       "field": "authorships",
       "field_type": "array",
       "test_func": count_equals,
@@ -429,7 +429,7 @@ tests_schema = {
       "icon": "mdi-account-multiple-outline"
     },
     {
-      "display_name": "Authorships IDs",
+      "display_name": "Authorships IDs Differ",
       "field": "authorships[*].id",
       "field_type": "array",
       "test_func": set_equals,
@@ -437,7 +437,7 @@ tests_schema = {
       "icon": "mdi-account-multiple-check-outline"
     },
     {
-      "display_name": "Institutions IDs",
+      "display_name": "Institutions IDs Differ",
       "field": "authorships[*].institutions[*].id",
       "field_type": "array",
       "test_func": set_equals,
@@ -445,7 +445,7 @@ tests_schema = {
       "icon": "mdi-town-hall"
     },
     {
-      "display_name": "Countries",
+      "display_name": "Countries Differ",
       "field": "authorships[*].countries",
       "field_type": "array",
       "test_func": set_equals,
@@ -453,7 +453,7 @@ tests_schema = {
       "icon": "mdi-earth"
     },
     {
-      "display_name": "Corresponding Author IDs",
+      "display_name": "Corresponding Author IDs Differ",
       "field": "corresponding_author_ids",
       "field_type": "array",
       "test_func": set_equals,
@@ -462,7 +462,7 @@ tests_schema = {
     },
 
     {
-      "display_name": "APC List",
+      "display_name": "APC List Changed",
       "field": "apc_list",
       "field_type": "number",
       "test_func": exact_match,
@@ -470,7 +470,7 @@ tests_schema = {
       "icon": "mdi-currency-usd"
     },
     {
-      "display_name": "APC Paid",
+      "display_name": "APC Paid Changed",
       "field": "apc_paid",
       "field_type": "number",
       "test_func": exact_match,
@@ -479,7 +479,7 @@ tests_schema = {
     },
 
     {
-      "display_name": "Primary Topic ID",
+      "display_name": "Primary Topic ID Changed",
       "field": "primary_topic.id",
       "field_type": "string",
       "test_func": exact_match,
@@ -487,7 +487,7 @@ tests_schema = {
       "icon": "mdi-tag-outline"
     },
     {
-      "display_name": "Topic IDs",
+      "display_name": "Topic IDs Differ",
       "field": "topics[*].id",
       "field_type": "array",
       "test_func": set_equals,
@@ -511,7 +511,7 @@ tests_schema = {
       "icon": "mdi-alpha-k"
     },
     {
-      "display_name": "Concept IDs",
+      "display_name": "Concept IDs Differ",
       "field": "concepts[*].id",
       "field_type": "array",
       "test_func": set_equals,
@@ -519,7 +519,7 @@ tests_schema = {
       "icon": "mdi-lightbulb-outline"
     },
     {
-      "display_name": "SDG IDs",
+      "display_name": "SDG IDs Differ",
       "field": "sustainable_development_goals[*].id",
       "field_type": "array",
       "test_func": set_equals,
