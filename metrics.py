@@ -24,7 +24,7 @@ matches = defaultdict(dict)
 match_rates = defaultdict(dict)
 coverage = defaultdict(dict)
 
-MAX_REQUESTS_PER_SECOND = 100
+MAX_REQUESTS_PER_SECOND = 50
 rate_limiter = None
 headers = {'Authorization': f'Bearer {OPENALEX_API_KEY}'}
 
