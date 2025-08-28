@@ -150,7 +150,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": length_within_5_percent,
       "test_type": "bug",
-      "icon": "mdi-format-title"
+      "icon": "mdi-format-title",
+      "description": "The title changed more than 5% in length",
     },
     {
       "display_name": "Publication Year Changed",
@@ -158,7 +159,8 @@ tests_schema = {
       "field_type": "number",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-calendar-month"
+      "icon": "mdi-calendar-month",
+      "description": "The publication year is not exactly equal",
     },
 
     {
@@ -167,7 +169,8 @@ tests_schema = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-lock-open-outline"
+      "icon": "mdi-lock-open-outline",
+      "description": "The primary_location.is_oa fields are not exactly equal",
     },
     {
       "display_name": "Primary OA Lost",
@@ -175,7 +178,8 @@ tests_schema = {
       "field_type": "boolean",
       "test_func": didnt_become_false,
       "test_type": "bug",
-      "icon": "mdi-lock-open-outline"
+      "icon": "mdi-lock-open-outline",
+      "description": "The primary_location.is_oa field became false",
     },
     {
       "display_name": "OA Became Null",
@@ -183,7 +187,8 @@ tests_schema = {
       "field_type": "boolean",
       "test_func": didnt_become_null,
       "test_type": "bug",
-      "icon": "mdi-lock-open-outline"
+      "icon": "mdi-lock-open-outline",
+      "description": "The primary_location.is_oa field became null",
     },
     {
       "display_name": "Source ID Lost",
@@ -191,7 +196,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": fill_in_bug,
       "test_type": "bug",
-      "icon": "mdi-map-marker-account"
+      "icon": "mdi-map-marker-account",
+      "description": "The primary_location.source.id field had a value and now has none",
     },
     {
       "display_name": "Source ID Added",
@@ -199,7 +205,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": fill_in_feature,
       "test_type": "feature",
-      "icon": "mdi-map-marker-account"
+      "icon": "mdi-map-marker-account",
+      "description": "The primary_location.source.id field was missing but now has a value",
     },
     {
       "display_name": "In DOAJ Changed",
@@ -207,7 +214,8 @@ tests_schema = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-map-marker-check"
+      "icon": "mdi-map-marker-check",
+      "description": "The primary_location.source.is_in_doaj fields are not exactly equal",
     },
     {
       "display_name": "Is Core Changed",
@@ -215,7 +223,8 @@ tests_schema = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-map-marker-check"
+      "icon": "mdi-map-marker-check",
+      "description": "The primary_location.source.is_core fields are not exactly equal",
     },
     {
       "display_name": "Host Organization Changed",
@@ -223,7 +232,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-map-marker-star"
+      "icon": "mdi-map-marker-star",
+      "description": "The primary_location.source.host_organization fields are not exactly equal",
     },
 
     {
@@ -232,7 +242,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": fill_in_bug,
       "test_type": "bug",
-      "icon": "mdi-map-marker-account-outline"
+      "icon": "mdi-map-marker-account-outline",
+      "description": "The best_oa_location.source.id fields are not exactly equal",
     },
     {
       "display_name": "Best OA Source ID Added",
@@ -240,7 +251,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": fill_in_feature,
       "test_type": "feature",
-      "icon": "mdi-map-marker-account-outline"  
+      "icon": "mdi-map-marker-account-outline",
+      "description": "The best_oa_location.source.id field was missing but now has a value",  
     },
     {
       "display_name": "PDF URL Lost",
@@ -248,7 +260,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": exists_fill_in,
       "test_type": "bug",
-      "icon": "mdi-file-pdf-box"
+      "icon": "mdi-file-pdf-box",
+      "description": "The best_oa_location.source.pdf_url field was not null but now is null",
     },
     {
       "display_name": "PDF URL Added",
@@ -256,7 +269,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": fill_in_feature,
       "test_type": "feature",
-      "icon": "mdi-file-pdf-box"
+      "icon": "mdi-file-pdf-box",
+      "description": "The best_oa_location.source.pdf_url field was missing but now has a value",
     },
     {
       "display_name": "Best OA License Changed",
@@ -264,7 +278,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": fill_in_bug,
       "test_type": "bug",
-      "icon": "mdi-license"
+      "icon": "mdi-license",
+      "description": "The best_oa_location.source.license field changed from a non null value",
     },
     {
       "display_name": "Best OA License Added",
@@ -272,7 +287,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": fill_in_feature,
       "test_type": "feature",
-      "icon": "mdi-license"
+      "icon": "mdi-license",
+      "description": "The best_oa_location.source.license field was missing but now has a value",
     },
     {
       "display_name": "Best OA Is Published Changed",
@@ -280,7 +296,8 @@ tests_schema = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-map-marker-check-outline"
+      "icon": "mdi-map-marker-check-outline",
+      "description": "The best_oa_location.source.is_published fields are not exactly equal",
     },
     {
       "display_name": "Best OA Is In DOAJ Changed",
@@ -288,7 +305,8 @@ tests_schema = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-map-marker-check-outline"
+      "icon": "mdi-map-marker-check-outline",
+      "description": "The best_oa_location.source.is_in_doaj fields are not exactly equal",
     },
 
     {
@@ -297,7 +315,8 @@ tests_schema = {
       "field_type": "boolean",
       "test_func": didnt_become_false,
       "test_type": "bug",
-      "icon": "mdi-lock-open-outline"
+      "icon": "mdi-lock-open-outline",
+      "description": "The open_access.is_oa field became false",
     },
     {
       "display_name": "OA Status Changed",
@@ -305,7 +324,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": status_equal_except_gold,
       "test_type": "bug",
-      "icon": "mdi-lock-percent-open-outline"
+      "icon": "mdi-lock-percent-open-outline",
+      "description": "The open_access.oa_status fields are not exactly equal but walden is not gold",
     },
     {
       "display_name": "OA Status Found Gold",
@@ -313,7 +333,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": status_became_gold,
       "test_type": "feature",
-      "icon": "mdi-lock-percent-open-outline"
+      "icon": "mdi-lock-percent-open-outline",
+      "description": "The open_access.oa_status field changed to gold",
     },
     {
       "display_name": "OA Has Fulltext Changed",
@@ -321,7 +342,8 @@ tests_schema = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-lock-percent-open-outline"
+      "icon": "mdi-lock-percent-open-outline",
+      "description": "The open_access.any_repository_has_fulltext fields are not exactly equal",
     },
 
     {
@@ -330,7 +352,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": fill_in_bug,
       "test_type": "bug",
-      "icon": "mdi-translate"
+      "icon": "mdi-translate",
+      "description": "The language field changed from a non null value",
     },
     {
       "display_name": "Language Added",
@@ -338,7 +361,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": fill_in_feature,
       "test_type": "feature",
-      "icon": "mdi-translate"
+      "icon": "mdi-translate",
+      "description": "The language field was missing but now has a value",
     },
     {
       "display_name": "Type Changed",
@@ -346,7 +370,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-shape-outline"
+      "icon": "mdi-shape-outline",
+      "description": "The type fields are not exactly equal",
     },
     {
       "display_name": "Indexed In Changed",
@@ -354,7 +379,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
-      "icon": "mdi-database-outline"
+      "icon": "mdi-database-outline",
+      "description": "The set of items in the indexed_in fields are not exactly equal",
     },
     {
       "display_name": "Is Retracted Changed",
@@ -362,7 +388,8 @@ tests_schema = {
       "field_type": "boolean",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-file-excel-outline"
+      "icon": "mdi-file-excel-outline",
+      "description": "The is_retracted fields are not exactly equal",
     },
     {
       "display_name": "Location Lost",
@@ -370,7 +397,8 @@ tests_schema = {
       "field_type": "number",
       "test_func": greater_than_or_equal,
       "test_type": "bug",
-      "icon": "mdi-map-marker-multiple-outline"
+      "icon": "mdi-map-marker-multiple-outline",
+      "description": "The locations_count field descreased",
     },
     {
       "display_name": "Location Added",
@@ -378,7 +406,8 @@ tests_schema = {
       "field_type": "number",
       "test_func": greater_than,
       "test_type": "feature",
-      "icon": "mdi-map-marker-multiple-outline"
+      "icon": "mdi-map-marker-multiple-outline",
+      "description": "The locations_count field increased",
     },
     {
       "display_name": "Referenced Works Count Differ",
@@ -386,7 +415,8 @@ tests_schema = {
       "field_type": "number",
       "test_func": within_5_percent_or_more,
       "test_type": "bug",
-      "icon": "mdi-book-arrow-down-outline"
+      "icon": "mdi-book-arrow-down-outline",
+      "description": "The referenced_works_count field changed by more than 5%",
     },
     {
       "display_name": "Related Works Differ",
@@ -394,7 +424,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
-      "icon": "mdi-book-arrow-down-outline"
+      "icon": "mdi-book-arrow-down-outline",
+      "description": "The set of items in the related_works fields are not exactly equal",
     },
     {
       "display_name": "Abstract Lost",
@@ -402,7 +433,8 @@ tests_schema = {
       "field_type": "object",
       "test_func": object_fill_in,
       "test_type": "bug",
-      "icon": "mdi-text-box-outline"
+      "icon": "mdi-text-box-outline",
+      "description": "The abstract_inverted_index field became missing",
     },
     {
       "display_name": "Abstract Added",
@@ -410,7 +442,8 @@ tests_schema = {
       "field_type": "object",
       "test_func": fill_in_feature,
       "test_type": "feature",
-      "icon": "mdi-text-box-outline"
+      "icon": "mdi-text-box-outline",
+      "description": "The abstract_inverted_index field was missing but now has a value",
     },
     {
       "display_name": "Grants Differ",
@@ -418,7 +451,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-cash"
+      "icon": "mdi-cash",
+      "description": "The grants fields are not exactly equal",
     },
     {
       "display_name": "Authorships Count Differ",
@@ -426,7 +460,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": count_equals,
       "test_type": "bug",
-      "icon": "mdi-account-multiple-outline"
+      "icon": "mdi-account-multiple-outline",
+      "description": "The number of items in the authorships fields are not equal",
     },
     {
       "display_name": "Authorships IDs Differ",
@@ -434,7 +469,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
-      "icon": "mdi-account-multiple-check-outline"
+      "icon": "mdi-account-multiple-check-outline",
+      "description": "The set of items in the authorships[*].id fields are not exactly equal",
     },
     {
       "display_name": "Institutions IDs Differ",
@@ -442,7 +478,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
-      "icon": "mdi-town-hall"
+      "icon": "mdi-town-hall",
+      "description": "The set of items in the authorships[*].institutions[*].id fields are not exactly equal",
     },
     {
       "display_name": "Countries Differ",
@@ -450,7 +487,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
-      "icon": "mdi-earth"
+      "icon": "mdi-earth",
+      "description": "The set of items in the authorships[*].countries fields are not exactly equal",
     },
     {
       "display_name": "Corresponding Author IDs Differ",
@@ -458,7 +496,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
-      "icon": "mdi-account-check-outline"
+      "icon": "mdi-account-check-outline",
+      "description": "The set of items in the corresponding_author_ids fields are not exactly equal",
     },
 
     {
@@ -467,7 +506,8 @@ tests_schema = {
       "field_type": "number",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-currency-usd"
+      "icon": "mdi-currency-usd",
+      "description": "The apc_list fields are not exactly equal",
     },
     {
       "display_name": "APC Paid Changed",
@@ -475,7 +515,8 @@ tests_schema = {
       "field_type": "number",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-currency-usd"
+      "icon": "mdi-currency-usd",
+      "description": "The apc_paid fields are not exactly equal",
     },
 
     {
@@ -484,7 +525,8 @@ tests_schema = {
       "field_type": "string",
       "test_func": exact_match,
       "test_type": "bug",
-      "icon": "mdi-tag-outline"
+      "icon": "mdi-tag-outline",
+      "description": "The primary_topic.id fields are not exactly equal",
     },
     {
       "display_name": "Topic IDs Differ",
@@ -492,7 +534,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
-      "icon": "mdi-tag-text-outline"
+      "icon": "mdi-tag-text-outline",
+      "description": "The set of items in the topics[*].id fields are not exactly equal",
     },
     {
       "display_name": "Keywords Lost",
@@ -500,7 +543,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": exists_fill_in,
       "test_type": "bug",
-      "icon": "mdi-alpha-k"
+      "icon": "mdi-alpha-k",
+      "description": "The keywords field had a value and is now missing",
     },
     {
       "display_name": "Keywords Added",
@@ -508,7 +552,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": fill_in_feature,
       "test_type": "feature",
-      "icon": "mdi-alpha-k"
+      "icon": "mdi-alpha-k",
+      "description": "The keywords field was missing but now has a value",
     },
     {
       "display_name": "Concept IDs Differ",
@@ -516,7 +561,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
-      "icon": "mdi-lightbulb-outline"
+      "icon": "mdi-lightbulb-outline",
+      "description": "The set of items in the concepts[*].id fields are not exactly equal",
     },
     {
       "display_name": "SDG IDs Differ",
@@ -524,7 +570,8 @@ tests_schema = {
       "field_type": "array",
       "test_func": set_equals,
       "test_type": "bug",
-      "icon": "mdi-sprout-outline"
+      "icon": "mdi-sprout-outline",
+      "description": "The set of items in the sustainable_development_goals[*].id fields are not exactly equal",
     },
   ]
 }
