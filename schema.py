@@ -355,7 +355,7 @@ tests_schema = {
       "test_func": existing_value_changed,
       "test_type": "bug",
       "icon": "mdi-translate",
-      "description": "The <code>language<code> field had a value and changed",
+      "description": "The <code>language</code> field had a value and changed",
     },
     {
       "display_name": "Language Added",
@@ -364,7 +364,7 @@ tests_schema = {
       "test_func": value_added,
       "test_type": "feature",
       "icon": "mdi-translate",
-      "description": "The <code>language<code> field was missing but now has a value",
+      "description": "The <code>language</code> field was missing but now has a value",
     },
     {
       "display_name": "Language Lost",
@@ -373,7 +373,7 @@ tests_schema = {
       "test_func": value_lost,
       "test_type": "bug",
       "icon": "mdi-translate",
-      "description": "The <code>language<code> field was not null but now is null",
+      "description": "The <code>language</code> field was not null but now is null",
     },
     {
       "display_name": "Type Changed",
@@ -382,7 +382,7 @@ tests_schema = {
       "test_func": not_exact_match,
       "test_type": "bug",
       "icon": "mdi-shape-outline",
-      "description": "The <code>type<code> fields are not equal",
+      "description": "The <code>type</code> fields are not equal",
     },
     {
       "display_name": "Indexed In Changed",
