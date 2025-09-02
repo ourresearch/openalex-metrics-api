@@ -454,6 +454,7 @@ tests_schema = {
       "field_type": "array",
       "test_func": set_does_not_equal,
       "test_type": "bug",
+      "category": "authors",
       "icon": "mdi-account-multiple-check-outline",
       "description": "The set of items in the <code>authorships[*].id</code> fields are not equal",
     },
