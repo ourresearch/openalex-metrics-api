@@ -52,12 +52,9 @@ def get_latest_sample(entity, type_="both"):
 def responses_endpoint():
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 100))
-    filter_failing = request.args.get("filterFailing", "")
-    if filter_failing:
-        filter_failing = filter_failing.split(",")
-    filter_adding = request.args.get("filterAdding", "")
-    if filter_adding:
-        filter_adding = filter_adding.split(",")
+    filter_test = request.args.get("filterTest", "")
+    if filter_test:
+        filter_test = filter_test.split(",")
 
 
     sample = get_latest_sample("works")
@@ -65,16 +62,14 @@ def responses_endpoint():
     if not sample or not sample.ids:
         return jsonify([])
     
-    if filter_failing or filter_adding:
+    if filter_test:
         from sqlalchemy import text, func
         
         # Build the filter conditions
         filter_conditions = []
-        for field in filter_failing:
-            filter_conditions.append(f"(match ->> '{field}')::boolean = false")
-        for field in filter_adding:
+        for field in filter_test:
             filter_conditions.append(f"(match ->> '{field}')::boolean = true")
-        
+    
         filter_clause = " AND ".join(filter_conditions)
         
         # Calculate total results count for filtered data
