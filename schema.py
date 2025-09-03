@@ -61,12 +61,12 @@ def not_exact_match(prod_value, walden_value):
 
 @expects_numbers
 def greater_than(prod_value, walden_value):
-  return prod_value > walden_value
+  return walden_value > prod_value
 
 
 @expects_numbers
 def greater_than_or_equal(prod_value, walden_value):
-  return prod_value >= walden_value
+  return walden_value >= prod_value
 
 
 @expects_numbers
