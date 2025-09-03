@@ -426,15 +426,18 @@ def save_data():
         # Prepare bulk data
         current_time = datetime.now()
         bulk_data = []
-        for id in samples["works"]["both"]["ids"]:
-            bulk_data.append({
-                'id': id,
-                'entity': 'works',
-                'date': current_time,
-                'prod': prod_results["works"][id],
-                'walden': walden_results["works"][id],
-                'match': matches["works"][id]
-            })
+        for entity in entities:
+            if not "both" in samples[entity]:
+                continue
+            for id in samples[entity]["both"]["ids"]:
+                bulk_data.append({
+                    'id': id,
+                    'entity': entity,
+                    'date': current_time,
+                    'prod': prod_results[entity][id],
+                    'walden': walden_results[entity][id],
+                    'match': matches[entity][id]
+                })
         
         # PostgreSQL UPSERT - much faster for bulk operations
         stmt = insert(Response).values(bulk_data)
