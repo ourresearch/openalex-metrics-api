@@ -48,8 +48,8 @@ def get_latest_sample(entity, type_="both"):
     return db.session.query(Sample).filter_by(entity=entity, type=type_).order_by(Sample.date.desc()).first()
 
 
-@app.route("/responses", methods=["GET"])
-def responses_endpoint():
+@app.route("/responses/<entity>", methods=["GET"])
+def responses_endpoint(entity):
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 100))
     filter_test = request.args.get("filterTest", "")
@@ -57,7 +57,7 @@ def responses_endpoint():
         filter_test = filter_test.split(",")
 
 
-    sample = get_latest_sample("works")
+    sample = get_latest_sample(entity)
     
     if not sample or not sample.ids:
         return jsonify([])
