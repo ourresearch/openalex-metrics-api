@@ -38,7 +38,7 @@ def expects_lists(func):
 
 
 def is_set_test(func):
-  return func in [set_does_not_equal]
+  return func in [set_does_not_equal, set_count_does_not_equal, set_count_increased, set_count_decreased]
 
 
 def get_test_keys(entity, type_="all"):
@@ -166,11 +166,18 @@ def language_changed_to_english(prod_value, walden_value):
   return prod_value != "en" and walden_value == "en"
 
 
+def type_changed_to_repository(prod_value, walden_value):
+  return prod_value != "repository" and walden_value == "repository"
+
+
+def type_changed_from_funder(prod_value, walden_value):
+  return prod_value == "funder" and walden_value != "funder"
+
 """
 TEST DEFINITIONS
 """
 
-tests_schema = {
+tests_schema_base = {
   "works": [
     # Sources
     {
@@ -721,5 +728,118 @@ tests_schema = {
       "icon": "mdi-sprout-outline",
       "description": "The <code>sustainable_development_goals</code> field had a value but is now missing",
     },
+  ],
+  "sources": [
+    {
+      "display_name": "is_oa Added",
+      "field": "is_oa",
+      "field_type": "boolean",
+      "test_func": became_true,
+      "test_type": "feature",
+      "category": "works",
+      "icon": "mdi-file-document-outline",
+      "description": "The <code>is_oa</code> field became true",
+    },
+    {
+      "display_name": "Type Changed to Repository",
+      "field": "type",
+      "field_type": "string",
+      "test_func": type_changed_to_repository,
+      "test_type": "feature",
+      "category": "works",
+      "icon": "mdi-file-document-outline",
+      "description": "The <code>type</code> field changed to <code>repository</code>",
+    },
+  ],
+  "institutions": [
+    {
+      "display_name": "Type Changed from Funder",
+      "field": "type",
+      "field_type": "boolean",
+      "test_func": type_changed_from_funder,
+      "test_type": "feature",
+      "category": "works",
+      "icon": "mdi-file-document-outline",
+      "description": "The <code>type</code> field changed away from <code>funder</code>",
+    },
   ]
 }
+
+entities = [
+  'authors', 
+  'continents', 
+  'countries', 
+  'domains', 
+  'fields', 
+  'funders', 
+  'institution-types', 
+  'institutions', 
+  'keywords', 
+  'languages', 
+  'licenses', 
+  'publishers', 
+  'sdgs', 
+  'source-types', 
+  'sources', 
+  'subfields', 
+  'topics', 
+  'work-types', 
+  'works'
+]
+
+non_works_tests = [
+  {
+    "display_name": "Works Count Decreased",
+    "field": "works_count",
+    "field_type": "number",
+    "test_func": less_than,
+    "test_type": "bug",
+    "category": "works",
+    "icon": "mdi-file-document-outline",
+    "description": "The <code>works_count</code> field decreased",
+  },
+  {
+    "display_name": "Works Count Increased",
+    "field": "works_count",
+    "field_type": "number",
+    "test_func": greater_than,
+    "test_type": "feature",
+    "category": "works",
+    "icon": "mdi-file-document-outline",
+    "description": "The <code>works_count</code> field increased",
+  },
+  {
+    "display_name": "Citation Count Decreased",
+    "field": "cited_by_count",
+    "field_type": "number",
+    "test_func": less_than,
+    "test_type": "bug",
+    "category": "citations",
+    "icon": "mdi-file-document-outline",
+    "description": "The <code>cited_by_count</code> field decreased",
+  },
+    {
+    "display_name": "Citation Count Increased",
+    "field": "cited_by_count",
+    "field_type": "number",
+    "test_func": greater_than,
+    "test_type": "feature",
+    "category": "citations",
+    "icon": "mdi-file-document-outline",
+    "description": "The <code>cited_by_count</code> field increased",
+  }
+]
+
+def make_tests_schema():
+  schema = {}
+  for entity in entities:
+    if entity in tests_schema_base:
+      schema[entity] = tests_schema_base[entity]
+    else:
+      schema[entity] = []
+    if entity != "works":
+      schema[entity].extend(non_works_tests)
+
+  return schema
+
+tests_schema = make_tests_schema()

@@ -11,7 +11,7 @@ from collections import defaultdict, deque
 
 from models import Sample, MetricSet, Response
 from app import db
-from schema import tests_schema, is_set_test, get_test_keys
+from schema import tests_schema, entities, is_set_test, get_test_keys
 
 OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 
@@ -98,6 +98,9 @@ async def fetch_ids(session, ids, entity, store, is_v2):
             clean_ids = [id.split("/")[-1] if "/" in id else id for id in ids]
             api_url = f"{api_endpoint}{entity}?filter={id_filter_field(entity)}:{'|'.join(clean_ids)}&per_page=100{'&data-version=2' if is_v2 else ''}"
             
+            #if entity == "institutions":
+            #    print("GET", api_url)
+
             async with session.get(api_url) as response:
                 if response.status == 200:
                     data = await response.json()
@@ -284,8 +287,6 @@ def calc_match(prod, walden, entity):
     
     # Iterate through all tests in the schema for this entity type
     for test in tests_schema[entity]:
-
-        passed = False
         
         test_key = test["display_name"].replace(" ", "_").lower()
         prod_value = get_field_value(prod, test["field"])
@@ -310,15 +311,17 @@ def calc_match(prod, walden, entity):
 
 
 def calc_matches():
-    entities = ["works"]
     for entity in entities:
+      if not "both" in samples[entity]:
+        continue
       for id in samples[entity]["both"]["ids"]:
         matches[entity][id] = calc_match(prod_results[entity][id], walden_results[entity][id], entity)
 
 
 def calc_match_rates():
-    entities = ["works"]
     for entity in entities:
+      if not "both" in samples[entity]:
+        continue
       test_keys = get_test_keys(entity)
       count = defaultdict(int)
       hits = defaultdict(int)

@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Import the Flask app and models
 from app import app, db
 from models import Sample
 
@@ -31,10 +30,6 @@ def load_samples(selected_sample_name=None):
     
     # Create application context
     with app.app_context():
-        # Create tables if they don't exist
-        db.create_all()
-        
-        # Load each sample
         samples_loaded = 0
         for sample_key, sample_data in samples_data.items():
             if selected_sample_name and sample_data.get('name', sample_key) != selected_sample_name:
