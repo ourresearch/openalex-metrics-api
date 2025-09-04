@@ -16,6 +16,7 @@ def expects_numbers(func):
     
   return wrapper
 
+
 def expects_strings(func):
   @wraps(func)
   def wrapper(prod_value, walden_value):
@@ -25,6 +26,7 @@ def expects_strings(func):
     return func(prod_value, walden_value)
     
   return wrapper
+
 
 def expects_lists(func):
   @wraps(func)
@@ -188,7 +190,7 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "sources",
       "icon": "mdi-map-marker-account",
-      "description": "The <code>primary_location.source.id</code> field had a value but now has none",
+      "description": "The <code>primary_location.source.id</code> field had a value but now is null or missing",
     },
     {
       "display_name": "Primary Source Added",
@@ -204,11 +206,11 @@ tests_schema_base = {
       "display_name": "Primary Source Changed",
       "field": "primary_location.source.id",
       "field_type": "string",
-      "test_func": not_exact_match,
+      "test_func": existing_value_changed,
       "test_type": "bug",
       "category": "sources",
       "icon": "mdi-map-marker-account",
-      "description": "The <code>primary_location.source.id</code> field changed",
+      "description": "The <code>primary_location.source.id</code> field had a value and changed",
     },
     {
       "display_name": "Primary Source Changed to Core",
@@ -299,7 +301,7 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "open access",
       "icon": "mdi-file-pdf-box",
-      "description": "The <code>best_oa_location.source.pdf_url</code> field was not null but now is null",
+      "description": "The <code>best_oa_location.source.pdf_url</code> field was not null but now is null or missing",
     },
     {
       "display_name": "PDF URL Added",
@@ -329,7 +331,7 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "open access",
       "icon": "mdi-license",
-      "description": "The <code>best_oa_location.source.license</code> field was not null but now is null",
+      "description": "The <code>best_oa_location.source.license</code> field was not null but now is null or missing",
     },
     {
       "display_name": "Best OA License Added",
@@ -380,7 +382,7 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "language",
       "icon": "mdi-translate",
-      "description": "The <code>language</code> field was not null but now is null",
+      "description": "The <code>language</code> field was not null but now is null or missing",
     },
     # Locations
     {
@@ -595,7 +597,7 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "other",
       "icon": "mdi-text-box-outline",
-      "description": "The <code>abstract_inverted_index</code> field had a value but now is missing",
+      "description": "The <code>abstract_inverted_index</code> field had a value but now is null or missing",
     },
     {
       "display_name": "Abstract Added",
@@ -625,7 +627,7 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "other",
       "icon": "mdi-cash",
-      "description": "The <code>grants</code> field had a value but now is missing",
+      "description": "The <code>grants</code> field had a value but now is null or missing",
     },
     {
       "display_name": "APC List Changed",
@@ -676,7 +678,7 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "aboutness",
       "icon": "mdi-alpha-k",
-      "description": "The <code>keywords</code> field had a value but is now missing",
+      "description": "The <code>keywords</code> field had a value but is now null or missing",
     },
     {
       "display_name": "Keywords Added",
@@ -706,7 +708,7 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "aboutness",
       "icon": "mdi-lightbulb-outline",
-      "description": "The <code>concepts</code> field had a value but is now missing",
+      "description": "The <code>concepts</code> field had a value but is now null or missing",
     },
     {
       "display_name": "SDGs Changed",
@@ -726,7 +728,7 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "aboutness",
       "icon": "mdi-sprout-outline",
-      "description": "The <code>sustainable_development_goals</code> field had a value but is now missing",
+      "description": "The <code>sustainable_development_goals</code> field had a value but is now null or missing",
     },
   ],
   "sources": [
@@ -772,7 +774,7 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "works",
       "icon": "mdi-file-document-outline",
-      "description": "The <code>works_count</code> field had a value but is now missing",
+      "description": "The <code>works_count</code> field had a value but is now null or missing",
     },
     {
       "display_name": "Cited By Count Lost",
@@ -782,7 +784,7 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "citations",
       "icon": "mdi-file-document-outline",
-      "description": "The <code>cited_by_count</code> field had a value but is now missing",
+      "description": "The <code>cited_by_count</code> field had a value but is now null or missing",
     },  
   ]
 }
