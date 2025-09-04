@@ -342,8 +342,6 @@ def calc_match_rates():
           average_sum += match_rates[entity][test_key]
         match_rates[entity][f"_average_{type_}"] = round(average_sum / len(test_keys))
 
-    print(match_rates)
-
 
 def calc_all_coverage():
     calc_coverage("prod")
@@ -368,12 +366,35 @@ def calc_coverage(type_):
         }
 
 
+def calc_field_sums():
+    for entity in samples.keys():
+        if "both" in samples[entity]:
+            calc_field_sum(entity, "prod")
+            calc_field_sum(entity, "walden")
+
+
+def calc_field_sum(entity, type_):
+    fields = ["works_count", "cited_by_count"]
+    field_sums = defaultdict(int)
+    store = prod_results if type_ == "prod" else walden_results
+
+    for id in samples[entity]["both"]["ids"]:
+        if store[entity].get(id, None):
+            for field in fields:
+                count = store[entity][id].get(field, 0)
+                if isinstance(count, int):
+                    field_sums[field] += count
+    coverage[entity][type_]["field_sums"] = dict(field_sums)
+
+
 async def get_entity_counts():
     async def get_entity_count(session, url, entity, type_):
         async with session.get(url) as response:
             if response.status == 200:
                 data = await response.json()
                 coverage[entity][type_]["count"] = data["meta"]["count"]
+            else:
+                print(f"Failed to get entity count for {entity} {type_}: {response.status}")
 
     async with aiohttp.ClientSession(headers=headers) as session:
         tasks = []
@@ -502,8 +523,9 @@ async def run_metrics(test=False):
     latest_samples += get_latest_samples(type_="walden")
     latest_samples += get_latest_samples(type_="both")
 
+    print("Using samples:")
     for sample in latest_samples:
-        print(f"Using sample {sample['name']} ({sample['type']}) with {len(sample['ids'])} IDs")
+        print(f"{sample['name']} ({sample['type']}) - {len(sample['ids'])} IDs")
         samples[sample["entity"]][sample["type"]] = sample
 
     # Create tasks for all samples to run in parallel
@@ -516,13 +538,18 @@ async def run_metrics(test=False):
     # Execute all sample fetching in parallel
     await asyncio.gather(*tasks)
     
-    # Calculate recall after all data is fetched
     calc_matches()
     calc_match_rates()
+
+    fields = ["works_count", "cited_by_count"]
+
     calc_all_coverage()
-    await get_entity_counts()
+    calc_field_sums()
 
     print("Coverage:", coverage)
+
+    await get_entity_counts()
+
 
     # Save data to database
     if not test:
