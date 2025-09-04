@@ -761,7 +761,29 @@ tests_schema_base = {
       "category": "works",
       "icon": "mdi-file-document-outline",
       "description": "The <code>type</code> field changed away from <code>funder</code>",
+    },  
+  ],
+  "publishers": [
+    {
+      "display_name": "Works Count Lost",
+      "field": "works_count",
+      "field_type": "number",
+      "test_func": value_lost,
+      "test_type": "bug",
+      "category": "works",
+      "icon": "mdi-file-document-outline",
+      "description": "The <code>works_count</code> field had a value but is now missing",
     },
+    {
+      "display_name": "Cited By Count Lost",
+      "field": "cited_by_count",
+      "field_type": "number",
+      "test_func": value_lost,
+      "test_type": "bug",
+      "category": "citations",
+      "icon": "mdi-file-document-outline",
+      "description": "The <code>cited_by_count</code> field had a value but is now missing",
+    },  
   ]
 }
 
