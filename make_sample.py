@@ -26,7 +26,8 @@ async def _fetch_json(session: aiohttp.ClientSession, url: str, params: Optional
     async with session.get(url, params=params, timeout=timeout) as resp:
         if resp.status != 200:
             text = await resp.text()
-            raise RuntimeError(f"OpenAlex request failed: {url} ({resp.status}): {text[:300]}")
+            full_url = url + "?" + "&".join([f"{k}={v}" for k, v in params.items()])
+            raise RuntimeError(f"OpenAlex request failed: {full_url} ({resp.status}): {text[:300]}")
         return await resp.json()
 
 
