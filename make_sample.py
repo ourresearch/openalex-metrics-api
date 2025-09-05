@@ -11,6 +11,7 @@ load_dotenv()
 
 from app import app, db
 from models import Sample
+from metrics import id_filter_field
 
 OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 OPENALEX_BASE = "https://api.openalex.org"
@@ -93,8 +94,9 @@ async def _ids_present_in(
 
     url = f"{OPENALEX_BASE}/{entity_type}"
     filter_value = "|".join(quote(_id) for _id in ids)
+    id_field = id_filter_field(entity_type)
     params = {
-        "filter": f"ids.openalex:{filter_value}",
+        "filter": f"{id_field}:{filter_value}",
         "select": "id",
         "per_page": PER_PAGE,
     }
@@ -138,9 +140,6 @@ async def build_sample(
 
             new_count = len(seen)
             print(f"\rBuilding {entity_type} - {sample_type}: {new_count} / {sample_size}", end="", flush=True)
-
-            if new_count == prev_count and sample_type != "prod-only":
-                break
 
     return sample_ids[:sample_size]
 

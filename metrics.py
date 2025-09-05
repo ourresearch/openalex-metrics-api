@@ -188,7 +188,7 @@ def extract_id(input_str):
 
 
 def id_filter_field(entity):
-    uses_id = ["keywords", "domains", "fields", "subfields", "continents", "countries", "languages", "licenses", "sdgs", "work-types", "source-types"]
+    uses_id = ["keywords", "domains", "fields", "subfields", "continents", "countries", "languages", "licenses", "sdgs", "work-types", "source-types", "institution-types"]
     return "id" if entity in uses_id else "ids.openalex"
 
 
@@ -381,7 +381,7 @@ def calc_field_sum(entity, type_):
     for id in samples[entity]["both"]["ids"]:
         if store[entity].get(id, None):
             for field in fields:
-                count = store[entity][id].get(field, 0)
+                count = store[entity][id].get(field, None)
                 if isinstance(count, int):
                     field_sums[field] += count
     coverage[entity][type_]["field_sums"] = dict(field_sums)
