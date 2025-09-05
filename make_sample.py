@@ -11,18 +11,13 @@ load_dotenv()
 
 from app import app, db
 from models import Sample
-from metrics import id_filter_field
+from metrics import id_filter_field, extract_id
 
 OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 OPENALEX_BASE = "https://api.openalex.org"
 PER_PAGE = 100
 
 headers = {'Authorization': f'Bearer {OPENALEX_API_KEY}'}
-
-
-def extract_id(openalex_url_or_id: str) -> str:
-    """e.g., 'https://openalex.org/W123' -> 'W123'"""
-    return openalex_url_or_id.split("/")[-1]
 
 
 async def _fetch_json(session: aiohttp.ClientSession, url: str, params: Optional[dict] = None) -> dict:
@@ -93,7 +88,8 @@ async def _ids_present_in(
         return set()
 
     url = f"{OPENALEX_BASE}/{entity_type}"
-    filter_value = "|".join(quote(_id) for _id in ids)
+    short_ids = [id.split("/")[-1] if "/" in id else id for id in ids]
+    filter_value = "|".join(short_ids)
     id_field = id_filter_field(entity_type)
     params = {
         "filter": f"{id_field}:{filter_value}",
@@ -146,7 +142,6 @@ async def build_sample(
 
 def save_sample(sample_name, entity_type, sample_type, ids):
     with app.app_context():
-        
         try:
             date_obj = datetime.now()
             
@@ -181,6 +176,13 @@ def save_sample(sample_name, entity_type, sample_type, ids):
             db.session.rollback()
 
 
+async def make_sample(sample_name, entity_type, sample_size, sample_type, test=False):
+    ids = await build_sample(entity_type=entity_type, sample_size=sample_size, sample_type=sample_type)
+    print(f"\n{len(ids)} IDs collected: {ids[:10]}")
+    if not test:
+        save_sample(sample_name, entity_type, sample_type, ids) 
+
+
 async def main():
     parser = argparse.ArgumentParser(description="Build a sample of OpenAlex entity IDs")
     parser.add_argument("--name", "-n", required=True, 
@@ -197,10 +199,7 @@ async def main():
     
     args = parser.parse_args()
     
-    ids = await build_sample(entity_type=args.entity, sample_size=args.size, sample_type=args.type)
-    print(f"\n{len(ids)} IDs collected: {ids[:10]}")
-    if not args.test:
-        save_sample(args.name, args.entity, args.type, ids)
+    await make_sample(args.name, args.entity, args.size, args.type, test=args.test)
 
 
 if __name__ == "__main__":

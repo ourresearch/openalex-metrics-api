@@ -8,6 +8,7 @@ from math import ceil
 from contextlib import contextmanager
 from email.utils import parsedate_to_datetime
 from collections import defaultdict, deque
+from pprint import pprint
 
 from models import Sample, MetricSet, Response
 from app import db
@@ -95,10 +96,10 @@ async def fetch_ids(session, ids, entity, store, is_v2):
         
         try:
             # Extract the part after the last "/" if present, otherwise use the full id
-            clean_ids = [id.split("/")[-1] if "/" in id else id for id in ids]
-            api_url = f"{api_endpoint}{entity}?filter={id_filter_field(entity)}:{'|'.join(clean_ids)}&per_page=100{'&data-version=2' if is_v2 else ''}"
+            short_ids = [id.split("/")[-1] if "/" in id else id for id in ids]
+            api_url = f"{api_endpoint}{entity}?filter={id_filter_field(entity)}:{'|'.join(short_ids)}&per_page=100{'&data-version=2' if is_v2 else ''}"
             
-            #if entity == "institutions":
+            # if entity == "languages":
             #    print("GET", api_url)
 
             async with session.get(api_url) as response:
@@ -184,7 +185,8 @@ async def fetch_ids(session, ids, entity, store, is_v2):
 
 def extract_id(input_str):
     org_index = input_str.find('.org/')
-    return input_str[org_index + 5:] if org_index != -1 else input_str
+    id = input_str[org_index + 5:] if org_index != -1 else input_str
+    return id
 
 
 def id_filter_field(entity):
@@ -523,9 +525,9 @@ async def run_metrics(test=False):
     latest_samples += get_latest_samples(type_="walden")
     latest_samples += get_latest_samples(type_="both")
 
-    print("Using samples:")
+    print("Using samples:", flush=True)
     for sample in latest_samples:
-        print(f"{sample['name']} ({sample['type']}) - {len(sample['ids'])} IDs")
+        print(f"{sample['name']} ({sample['type']}) - {len(sample['ids'])} IDs", flush=True)
         samples[sample["entity"]][sample["type"]] = sample
 
     # Create tasks for all samples to run in parallel
@@ -546,7 +548,8 @@ async def run_metrics(test=False):
     calc_all_coverage()
     calc_field_sums()
 
-    print("Coverage:", coverage)
+    print("Coverage:")
+    pprint(coverage)
 
     await get_entity_counts()
 
