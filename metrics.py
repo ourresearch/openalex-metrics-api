@@ -186,6 +186,7 @@ async def fetch_ids(session, ids, entity, store, is_v2):
 def extract_id(input_str):
     org_index = input_str.find('.org/')
     id = input_str[org_index + 5:] if org_index != -1 else input_str
+    id = "work-" + id if id.startswith("types/") else id # account for discrepancy in work-types IDs prod vs. walden
     return id
 
 
