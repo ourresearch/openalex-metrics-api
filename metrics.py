@@ -545,7 +545,7 @@ async def run_metrics(test=False):
     calc_match_rates()
 
     print("Matches Rates:")
-    pprint(matches_rates)
+    pprint(match_rates)
     
     calc_all_coverage()
     calc_field_sums()
