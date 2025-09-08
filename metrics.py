@@ -99,8 +99,8 @@ async def fetch_ids(session, ids, entity, store, is_v2):
             short_ids = [id.split("/")[-1] if "/" in id else id for id in ids]
             api_url = f"{api_endpoint}{entity}?filter={id_filter_field(entity)}:{'|'.join(short_ids)}&per_page=100{'&data-version=2' if is_v2 else ''}"
             
-            # if entity == "languages":
-            #    print("GET", api_url)
+            if entity == "work-types":
+                print("GET", api_url)
 
             async with session.get(api_url) as response:
                 if response.status == 200:
@@ -544,8 +544,9 @@ async def run_metrics(test=False):
     calc_matches()
     calc_match_rates()
 
-    fields = ["works_count", "cited_by_count"]
-
+    print("Matches Rates:")
+    pprint(matches_rates)
+    
     calc_all_coverage()
     calc_field_sums()
 
