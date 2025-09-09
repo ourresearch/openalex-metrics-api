@@ -390,6 +390,66 @@ def calc_field_sum(entity, type_):
     coverage[entity][type_]["field_sums"] = dict(field_sums)
 
 
+def calc_correlations():
+    fields = ["works_count", "cited_by_count"]
+    for entity in samples.keys():
+        coverage[entity]["correlations"] = {}
+        if "both" in samples[entity]:
+            for field in fields:
+                pairs = []
+                for id in samples[entity]["both"]["ids"][:1000]:
+                    prod_result = prod_results[entity].get(id, None)
+                    walden_result = walden_results[entity].get(id, None)
+                    if prod_result and walden_result:
+                        prod_value = prod_result.get(field, None)
+                        walden_value = walden_result.get(field, None)
+                        if prod_value and walden_value:
+                            pairs.append((prod_value, walden_value))
+                if len(pairs) > 1:
+                    coverage[entity]["correlations"][field] = calc_spearman_rho(pairs)
+
+
+def calc_spearman_rho(pairs):
+    """
+    Calculate Spearman's rank correlation coefficient (rho) 
+    given a list of (x, y) value pairs.
+    """
+    n = len(pairs)
+    if n < 2:
+        raise ValueError("Need at least two pairs to compute Spearman's rho")
+
+    # Separate x and y
+    xs, ys = zip(*pairs)
+
+    # Helper to compute ranks (ties handled by averaging)
+    def rank(values):
+        sorted_vals = sorted((val, i) for i, val in enumerate(values))
+        ranks = [0] * len(values)
+        i = 0
+        while i < len(values):
+            j = i
+            while j + 1 < len(values) and sorted_vals[j+1][0] == sorted_vals[i][0]:
+                j += 1
+            avg_rank = (i + j + 2) / 2.0  # ranks are 1-based
+            for k in range(i, j+1):
+                ranks[sorted_vals[k][1]] = avg_rank
+            i = j + 1
+        return ranks
+
+    rx = rank(xs)
+    ry = rank(ys)
+
+    # Compute Pearson correlation of ranks
+    mean_rx = sum(rx) / n
+    mean_ry = sum(ry) / n
+
+    num = sum((rx[i] - mean_rx) * (ry[i] - mean_ry) for i in range(n))
+    den_x = sum((rx[i] - mean_rx) ** 2 for i in range(n)) ** 0.5
+    den_y = sum((ry[i] - mean_ry) ** 2 for i in range(n)) ** 0.5
+
+    return num / (den_x * den_y) if den_x and den_y else 0.0
+
+
 async def get_entity_counts():
     async def get_entity_count(session, url, entity, type_):
         async with session.get(url) as response:
@@ -549,6 +609,7 @@ async def run_metrics(test=False):
     
     calc_all_coverage()
     calc_field_sums()
+    calc_correlations()
 
     print("Coverage:")
     pprint(coverage)
