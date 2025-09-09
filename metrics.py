@@ -349,6 +349,7 @@ def calc_match_rates():
 def calc_all_coverage():
     calc_coverage("prod")
     calc_coverage("walden")
+    set_both_sample_sizes()
 
 
 def calc_coverage(type_):
@@ -367,6 +368,12 @@ def calc_coverage(type_):
             "coverage": round(100 * hits / count) if count > 0 else "-",
             "sampleSize": count
         }
+
+
+def set_both_sample_sizes():
+    for entity in samples.keys():
+        if "both" in samples[entity]:
+            coverage[entity]["both"] = {"sampleSize": len(samples[entity]["both"]["ids"])}
 
 
 def calc_field_sums():
