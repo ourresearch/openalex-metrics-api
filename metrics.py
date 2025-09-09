@@ -99,7 +99,7 @@ async def fetch_ids(session, ids, entity, store, is_v2):
             short_ids = [id.split("/")[-1] if "/" in id else id for id in ids]
             api_url = f"{api_endpoint}{entity}?filter={id_filter_field(entity)}:{'|'.join(short_ids)}&per_page=100{'&data-version=2' if is_v2 else ''}"
             
-            if entity == "work-types":
+            if entity in ["work-types", "source-types"]:
                 print("GET", api_url)
 
             async with session.get(api_url) as response:

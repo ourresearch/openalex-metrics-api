@@ -318,21 +318,21 @@ tests_schema_base = {
     },
     {
       "display_name": "Best OA License Changed",
-      "field": "best_oa_location.source.license",
+      "field": "best_oa_location.license",
       "field_type": "string",
       "test_func": existing_value_changed,
       "test_type": "bug",
       "category": "open access",
-      "description": "The <code>best_oa_location.source.license</code> field had a value and the value changed",
+      "description": "The <code>best_oa_location.license</code> field had a value and the value changed",
     },
     {
       "display_name": "Best OA License Lost",
-      "field": "best_oa_location.source.license",
+      "field": "best_oa_location.license",
       "field_type": "string",
       "test_func": value_lost,
       "test_type": "bug",
       "category": "open access",
-      "description": "The <code>best_oa_location.source.license</code> field was not null but now is null or missing",
+      "description": "The <code>best_oa_location.license</code> field was not null but now is null or missing",
     },
     {
       "display_name": "Best OA License Added",
@@ -341,7 +341,7 @@ tests_schema_base = {
       "test_func": value_added,
       "test_type": "feature",
       "category": "open access",
-      "description": "The <code>best_oa_location.source.license</code> field was missing but now has a value",
+      "description": "The <code>best_oa_location.license</code> field was missing but now has a value",
     },
     # Language
     {
@@ -436,16 +436,16 @@ tests_schema_base = {
       "category": "citations",
       "description": "The <code>cited_by_count</code> field increased",
     },
-    # Authors
     {
-      "display_name": "Authorships Count Changed",
-      "field": "authorships[*].id",
-      "field_type": "array",
-      "test_func": set_count_does_not_equal,
+      "display_name": "FWCI Changed",
+      "field": "fwci",
+      "field_type": "number",
+      "test_func": not_within_10_percent,
       "test_type": "bug",
-      "category": "authors",
-      "description": "The size of the set of items in <code>authorships</code> is not equal",
+      "category": "citations",
+      "description": "The <code>fwci</code> field changed by more than 10%",
     },
+    # Authors
     {
       "display_name": "Authorships Changed",
       "field": "authorships[*].id",
@@ -530,15 +530,6 @@ tests_schema_base = {
       "description": "The set of items in the <code>indexed_in</code> fields are not equal",
     },
     {
-      "display_name": "Retraction Changed",
-      "field": "is_retracted",
-      "field_type": "boolean",
-      "test_func": not_exact_match,
-      "test_type": "bug",
-      "category": "other",
-      "description": "The <code>is_retracted</code> fields are not equal",
-    },
-    {
       "display_name": "Retraction Added",
       "field": "is_retracted",
       "field_type": "boolean",
@@ -555,15 +546,6 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "other",
       "description": "The <code>is_retracted</code> field became <code>false</code>",
-    },
-    {
-      "display_name": "FWCI Changed",
-      "field": "fwci",
-      "field_type": "number",
-      "test_func": not_within_10_percent,
-      "test_type": "bug",
-      "category": "other",
-      "description": "The <code>fwci</code> field changed by more than 10%",
     },
     {
       "display_name": "Related Works Changed",
