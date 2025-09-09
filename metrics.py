@@ -397,7 +397,7 @@ def calc_correlations():
         if "both" in samples[entity]:
             for field in fields:
                 pairs = []
-                for id in samples[entity]["both"]["ids"][:1000]:
+                for id in samples[entity]["both"]["ids"]:
                     prod_result = prod_results[entity].get(id, None)
                     walden_result = walden_results[entity].get(id, None)
                     if prod_result and walden_result:
@@ -504,7 +504,7 @@ def save_data():
             data=match_rates_data
         )
 
-        # Bulk upsert optimization for large datasets
+        # Bulk upsert optimization for large datasets with chunking
         from sqlalchemy.dialects.postgresql import insert
         
         # Prepare bulk data
@@ -523,19 +523,34 @@ def save_data():
                     'match': matches[entity][id]
                 })
         
-        # PostgreSQL UPSERT - much faster for bulk operations
-        stmt = insert(Response).values(bulk_data)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=['id'],
-            set_={
-                'entity': stmt.excluded.entity,
-                'date': stmt.excluded.date,
-                'prod': stmt.excluded.prod,
-                'walden': stmt.excluded.walden,
-                'match': stmt.excluded.match
-            }
-        )
-        session.execute(stmt)
+        # Process in chunks to avoid operational errors with large datasets
+        chunk_size = 1000
+        total_records = len(bulk_data)
+        print(f"Processing {total_records} records in chunks of {chunk_size}")
+        
+        for i in range(0, total_records, chunk_size):
+            chunk = bulk_data[i:i + chunk_size]
+            chunk_num = (i // chunk_size) + 1
+            total_chunks = (total_records + chunk_size - 1) // chunk_size
+            
+            print(f"Processing chunk {chunk_num}/{total_chunks} ({len(chunk)} records)")
+            
+            # PostgreSQL UPSERT for this chunk
+            stmt = insert(Response).values(chunk)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=['id'],
+                set_={
+                    'entity': stmt.excluded.entity,
+                    'date': stmt.excluded.date,
+                    'prod': stmt.excluded.prod,
+                    'walden': stmt.excluded.walden,
+                    'match': stmt.excluded.match
+                }
+            )
+            session.execute(stmt)
+            
+            # Commit each chunk to avoid long-running transactions
+            session.commit()
 
         # Save to database
         session.add(coverage_metric_set)
