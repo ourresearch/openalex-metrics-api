@@ -398,7 +398,7 @@ def calc_field_sum(entity, type_):
 
 
 def calc_correlations():
-    fields = ["works_count", "cited_by_count"]
+    fields = ["works_count", "cited_by_count", "referenced_works_count", "fwci", "countries_distinct_count", "institutions_distinct_count", "locations_count"]
     for entity in samples.keys():
         coverage[entity]["correlations"] = {}
         if "both" in samples[entity]:
