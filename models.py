@@ -7,6 +7,7 @@ class Sample(db.Model):
     name = db.Column(db.Text, primary_key=True)
     entity = db.Column(db.Text)
     type = db.Column(db.Text)
+    scope = db.Column(db.Text)
     description = db.Column(db.Text)
     date = db.Column(db.DateTime)
     ids = db.Column(db.JSON)
@@ -17,6 +18,7 @@ class MetricSet(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     type = db.Column(db.Text)
     entity = db.Column(db.Text)
+    scope = db.Column(db.Text)
     date = db.Column(db.DateTime)
     data = db.Column(JSONB)
     
@@ -25,6 +27,7 @@ class MetricSet(db.Model):
             "id": self.id,
             "type": self.type,
             "entity": self.entity,
+            "scope": self.scope,
             "date": self.date,
             "data": self.data
         }

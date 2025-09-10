@@ -4,7 +4,7 @@ import asyncio
 import argparse
 from typing import List, Set, Optional
 from urllib.parse import quote
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -35,6 +35,7 @@ async def _fetch_random_sample(
     session: aiohttp.ClientSession,
     entity_type: str,
     sample_type: str,
+    sample_scope: str,
 ) -> List[str]:
     """
     Fetch one page of random sample IDs for the given entity_type.
@@ -45,11 +46,15 @@ async def _fetch_random_sample(
     # - 'walden' and 'walden-only' sample from Walden (data-version=2)
     url = f"{OPENALEX_BASE}/{entity_type}"
     params = {
-        "sample": PER_PAGE,   # random sample size returned by OpenAlex
+        "sample": PER_PAGE,
         "per_page": PER_PAGE,
     }
     if sample_type in {"walden", "walden-only"}:
         params["data-version"] = "2"
+
+    if sample_scope == "last-week":
+        last_week_str = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+        params["filter"] = f"from_created_date:{last_week_str}"
 
     data = await _fetch_json(session, url, params=params)
     raw_ids = [extract_id(item["id"]) for item in data.get("results", [])]
@@ -108,6 +113,7 @@ async def build_sample(
     entity_type: str,
     sample_size: int,
     sample_type: str,
+    sample_scope: str,
 ) -> List[str]:
     """
     sample_type:
@@ -116,7 +122,6 @@ async def build_sample(
       - 'prod-only'    : sample from Prod, then remove IDs that exist in Walden
       - 'walden-only'  : sample from Walden, then remove IDs that exist in Prod
       - 'both'         : sample from Prod, keep only IDs that also exist in Walden
-
     """
     if sample_type not in {"prod", "walden", "prod-only", "walden-only", "both"}:
         raise ValueError("sample_type must be one of: 'prod', 'walden', 'prod-only', 'walden-only', 'both'")
@@ -126,7 +131,7 @@ async def build_sample(
 
     async with aiohttp.ClientSession(headers=headers) as session:
         while len(sample_ids) < sample_size:
-            new_ids = await _fetch_random_sample(session, entity_type, sample_type)
+            new_ids = await _fetch_random_sample(session, entity_type, sample_type, sample_scope)
             prev_count = len(seen)
             for _id in new_ids:
                 if _id not in seen:
@@ -141,7 +146,7 @@ async def build_sample(
     return sample_ids[:sample_size]
 
 
-def save_sample(sample_name, entity_type, sample_type, ids):
+def save_sample(sample_name, entity_type, sample_type, sample_scope, ids):
     with app.app_context():
         try:
             date_obj = datetime.now()
@@ -151,6 +156,7 @@ def save_sample(sample_name, entity_type, sample_type, ids):
                 name=sample_name,
                 entity=entity_type,
                 type=sample_type,
+                scope=sample_scope,
                 date=date_obj,
                 ids=ids
             )
@@ -177,11 +183,11 @@ def save_sample(sample_name, entity_type, sample_type, ids):
             db.session.rollback()
 
 
-async def make_sample(sample_name, entity_type, sample_size, sample_type, test=False):
-    ids = await build_sample(entity_type=entity_type, sample_size=sample_size, sample_type=sample_type)
+async def make_sample(sample_name, entity_type, sample_size, sample_type, sample_scope="all", test=False):
+    ids = await build_sample(entity_type=entity_type, sample_size=sample_size, sample_type=sample_type, sample_scope=sample_scope)
     print(f"\n{len(ids)} IDs collected: {ids[:10]}")
     if not test:
-        save_sample(sample_name, entity_type, sample_type, ids) 
+        save_sample(sample_name, entity_type, sample_type, sample_scope, ids) 
 
 
 async def main():
@@ -195,12 +201,15 @@ async def main():
     parser.add_argument("--type", "-t", required=True,
                        choices=["prod", "walden", "prod-only", "walden-only", "both"],
                        help="Sample type: prod, walden, prod-only, walden-only, or both")
+    parser.add_argument("--scope", "-p", default="all",
+                       choices=["last-week", "all"],
+                       help="Sample scope: last-week, all")
     parser.add_argument("--test", "-x", action="store_true",
                        help="Run in test mode (skip saving to database)")
     
     args = parser.parse_args()
     
-    await make_sample(args.name, args.entity, args.size, args.type, test=args.test)
+    await make_sample(args.name, args.entity, args.size, args.type, args.scope, test=args.test)
 
 
 if __name__ == "__main__":

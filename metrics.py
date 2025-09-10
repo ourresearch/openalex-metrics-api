@@ -567,7 +567,7 @@ def save_data():
     print(f"Saved metrics and responses to database in {elapsed_time:.2f} seconds")
 
 
-def get_latest_samples(type_):
+def get_latest_samples(type_, scope="all"):
     """
     Return a list of samples, one for each value of "entity" and the most recent only
     if there is more than one sample for each entity value, only considering samples
@@ -583,6 +583,7 @@ def get_latest_samples(type_):
                 func.max(Sample.date).label("max_date")
             )
             .filter(Sample.type == type_)
+            .filter(Sample.scope == scope)
             .group_by(Sample.entity)
             .subquery()
         )
@@ -596,6 +597,7 @@ def get_latest_samples(type_):
                 (Sample.date == latest_dates.c.max_date)
             )
             .filter(Sample.type == type_)
+            .filter(Sample.scope == scope)
             .all()
         )
 
@@ -603,14 +605,14 @@ def get_latest_samples(type_):
         return [{'entity': entity, 'ids': ids, 'type': type_, 'name': name} for entity, ids, type_, name in latest_samples]
 
 
-async def run_metrics(test=False):
-    latest_samples = get_latest_samples(type_="prod")
-    latest_samples += get_latest_samples(type_="walden")
-    latest_samples += get_latest_samples(type_="both")
+async def run_metrics(test=False, scope="all"):
+    latest_samples = get_latest_samples(type_="prod", scope=scope)
+    latest_samples += get_latest_samples(type_="walden", scope=scope)
+    latest_samples += get_latest_samples(type_="both", scope=scope)
 
     print("Using samples:", flush=True)
     for sample in latest_samples:
-        print(f"{sample['name']} ({sample['type']}) - {len(sample['ids'])} IDs", flush=True)
+        print(f"{sample['name']} - {len(sample['ids'])}", flush=True)
         samples[sample["entity"]][sample["type"]] = sample
 
     # Create tasks for all samples to run in parallel

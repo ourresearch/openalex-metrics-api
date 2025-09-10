@@ -799,3 +799,10 @@ def make_tests_schema():
   return schema
 
 tests_schema = make_tests_schema()
+
+last_week_samples_schema = {
+  "works": {"both": 10000, "walden": 500, "prod": 500},
+  #"sources": {"both": 10000, "walden": 500, "prod": 500},
+  #"institutions": {"both": 10000, "walden": 500, "prod": 500},
+  #"publishers": {"both": 500, "walden": 500, "prod": 500},
+}

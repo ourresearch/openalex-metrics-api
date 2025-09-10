@@ -33,19 +33,21 @@ def schema_endpoint():
 @app.route("/coverage", methods=["GET"])
 def coverage_endpoint():
     # return the latest metricset with type: "coverage"
-    metricset = MetricSet.query.filter_by(type="coverage").order_by(MetricSet.date.desc()).first()
+    scope = request.args.get("sample", "all")
+    metricset = MetricSet.query.filter_by(type="coverage", scope=scope).order_by(MetricSet.date.desc()).first()
     return jsonify(metricset.to_dict())
 
 
 @app.route("/match-rates", methods=["GET"])
 def match_rates_endpoint():
     # return the latest metricset with type: "match_rates"
-    metricset = MetricSet.query.filter_by(type="match_rates").order_by(MetricSet.date.desc()).first()
+    scope = request.args.get("sample", "all")
+    metricset = MetricSet.query.filter_by(type="match_rates", scope=scope).order_by(MetricSet.date.desc()).first()
     return jsonify(metricset.to_dict())
 
 
-def get_latest_sample(entity, type_="both"):
-    return db.session.query(Sample).filter_by(entity=entity, type=type_).order_by(Sample.date.desc()).first()
+def get_latest_sample(entity, type_="both", scope="all"):
+    return db.session.query(Sample).filter_by(entity=entity, type=type_, scope=scope).order_by(Sample.date.desc()).first()
 
 
 @app.route("/responses/<entity>", methods=["GET"])
@@ -53,11 +55,12 @@ def responses_endpoint(entity):
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 100))
     filter_test = request.args.get("filterTest", "")
+    scope = request.args.get("sample", "all")
     if filter_test:
         filter_test = filter_test.split(",")
 
 
-    sample = get_latest_sample(entity)
+    sample = get_latest_sample(entity, scope=scope)
     
     if not sample or not sample.ids:
         return jsonify([])
