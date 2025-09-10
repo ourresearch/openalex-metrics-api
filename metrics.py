@@ -491,7 +491,7 @@ def db_session():
         session.close()
 
 
-def save_data():
+def save_data(scope="all"):
     print("Saving data to database...")
     start_time = time.time()
     with db_session() as session:
@@ -499,6 +499,7 @@ def save_data():
         coverage_metric_set = MetricSet(
             type="coverage",
             entity="all",
+            scope=scope,
             date=datetime.now(),
             data=coverage_data
         )
@@ -507,6 +508,7 @@ def save_data():
         match_rates_metric_set = MetricSet(
             type="match_rates",
             entity="all",
+            scope=scope,
             date=datetime.now(),
             data=match_rates_data
         )
@@ -643,4 +645,4 @@ async def run_metrics(test=False, scope="all"):
 
     # Save data to database
     if not test:
-        save_data()
+        save_data(scope=scope)
