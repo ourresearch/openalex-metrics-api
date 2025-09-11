@@ -721,7 +721,8 @@ tests_schema_base = {
 }
 
 entities = [
-  'authors', 
+  'authors',
+  'awards',
   'continents', 
   'countries',
   'concepts',

@@ -98,9 +98,6 @@ async def fetch_ids(session, ids, entity, store, is_v2):
             # Extract the part after the last "/" if present, otherwise use the full id
             short_ids = [id.split("/")[-1] if "/" in id else id for id in ids]
             api_url = f"{api_endpoint}{entity}?filter={id_filter_field(entity)}:{'|'.join(short_ids)}&per_page=100{'&data-version=2' if is_v2 else ''}"
-            
-            if entity in ["work-types", "source-types"]:
-                print("GET", api_url)
 
             async with session.get(api_url) as response:
                 if response.status == 200:
@@ -109,6 +106,7 @@ async def fetch_ids(session, ids, entity, store, is_v2):
                         store[entity][extract_id(result["id"])] = result
                     returned_ids = [extract_id(result["id"]) for result in data["results"]]
                     missing_ids = list(set(ids) - set(returned_ids))
+
                     for id in missing_ids:
                         store[entity][id] = None
                     return  # Success - exit retry loop
@@ -364,6 +362,7 @@ def calc_coverage(type_):
                 if test_store[entity].get(id, None):
                     hits += 1
                 count += 1
+
         coverage[entity][type_] = {
             "coverage": round(100 * hits / count) if count > 0 else "-",
             "sampleSize": count
