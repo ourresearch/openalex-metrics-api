@@ -63,8 +63,16 @@ def responses_endpoint(entity):
     sample = get_latest_sample(entity, scope=scope)
     
     if not sample or not sample.ids:
-        return jsonify([])
-    
+        return jsonify({
+            "meta": {
+                "page": page,
+                "per_page": per_page,
+                "sample_size": 0,
+                "count": 0
+            },
+            "results": []
+        })
+
     if filter_test:
         from sqlalchemy import text, func
         
