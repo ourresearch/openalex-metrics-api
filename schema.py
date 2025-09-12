@@ -144,6 +144,19 @@ def count_does_not_equal(prod_value, walden_value):
   return len(prod_value) != len(walden_value)
 
 
+@expects_lists_feature
+def count_increased_from_zero(prod_value, walden_value):
+  return len(prod_value) == 0 and len(walden_value) > 0
+
+
+def count_increased_from_null_above_zero(prod_value, walden_value):
+  return prod_value is None and isinstance(walden_value, list) and len(walden_value) > 0
+
+
+@expects_lists_feature
+def count_decreased_from_zero(prod_value, walden_value):
+  return len(prod_value) > 0 and len(walden_value) == 0
+
 @expects_lists_bug
 def set_does_not_equal(prod_value, walden_value):
   return set(prod_value) != set(walden_value)
@@ -416,11 +429,20 @@ tests_schema_base = {
       "category": "locations",
       "description": "The <code>locations_count</code> field increased",
     },
-        {
+    {
       "display_name": "Locations Count Decreased",
       "field": "locations_count",
       "field_type": "number",
       "test_func": less_than,
+      "test_type": "bug",
+      "category": "locations",
+      "description": "The <code>locations_count</code> field decreased",
+    },
+    {
+      "display_name": "Location Version Changed",
+      "field": "locations[*].version",
+      "field_type": "number",
+      "test_func": not_exact_match,
       "test_type": "bug",
       "category": "locations",
       "description": "The <code>locations_count</code> field decreased",
@@ -538,6 +560,15 @@ tests_schema_base = {
       "description": "The <code>publication_year</code> fileds are not equal",
     },
     {
+      "display_name": "Publication Date Changed",
+      "field": "publication_date",
+      "field_type": "date",
+      "test_func": not_exact_match,
+      "test_type": "bug",
+      "category": "other",
+      "description": "The <code>publication_date</code> fileds are not equal",
+    },
+    {
       "display_name": "Type Changed",
       "field": "type",
       "field_type": "string",
@@ -545,6 +576,33 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "other",
       "description": "The <code>type</code> fields are not equal",
+    },
+    {
+      "display_name": "DOI Changed",
+      "field": "ids.doi",
+      "field_type": "string",
+      "test_func": not_exact_match,
+      "test_type": "bug",
+      "category": "other",
+      "description": "The <code>ids.doi</code> fields are not equal",
+    },
+    {
+      "display_name": "MAG ID Changed",
+      "field": "ids.mag",
+      "field_type": "string",
+      "test_func": not_exact_match,
+      "test_type": "bug",
+      "category": "other",
+      "description": "The <code>ids.mag</code> fields are not equal",
+    },
+    {
+      "display_name": "PMID Changed",
+      "field": "ids.pmid",
+      "field_type": "string",
+      "test_func": not_exact_match,
+      "test_type": "bug",
+      "category": "other",
+      "description": "The <code>ids.pmid</code> fields are not equal",
     },
     {
       "display_name": "Indexed In Changed",
@@ -636,6 +694,42 @@ tests_schema_base = {
       "test_type": "bug",
       "category": "other",
       "description": "The <code>apc_paid</code> fields are not equal",
+    },
+    {
+      "display_name": "APC Paid USD Changed",
+      "field": "apc_paid.value_usd",
+      "field_type": "number",
+      "test_func": not_exact_match,
+      "test_type": "bug",
+      "category": "other",
+      "description": "The <code>apc_paid.value_usd</code> fields are not equal",
+    },
+    {
+      "display_name": "Mesh Lost",
+      "field": "mesh",
+      "field_type": "array",
+      "test_func": value_lost,
+      "test_type": "bug",
+      "category": "other",
+      "description": "The <code>mesh</code> field was not null but now is null or missing",
+    },
+    {
+      "display_name": "Mesh Added",
+      "field": "mesh",
+      "field_type": "array",
+      "test_func": count_increased_from_zero,
+      "test_type": "feature",
+      "category": "other",
+      "description": "The <code>mesh</code> field had zero items and now has more than zero",
+    },
+    {
+      "display_name": "Awards Added",
+      "field": "awards",
+      "field_type": "array",
+      "test_func": count_increased_from_null_above_zero,
+      "test_type": "feature",
+      "category": "other",
+      "description": "The <code>awards</code> field was null or missing but now has more than zero items",
     },
     # Aboutness
     {
