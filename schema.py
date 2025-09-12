@@ -6,38 +6,66 @@ from numbers import Number
 """
 Test Helpers
 """
-def expects_numbers(func):
+def expects_numbers_bug(func):
   @wraps(func)
   def wrapper(prod_value, walden_value):
+    if isinstance(prod_value, Number) and not isinstance(walden_value, Number):
+      return True # If prod has a number and Walden doesn't then it's a bug
+    
     if not isinstance(prod_value, Number) or not isinstance(walden_value, Number):
       return False
         
     return func(prod_value, walden_value)
-    
   return wrapper
 
 
-def expects_strings(func):
+def expects_numbers_feature(func):
   @wraps(func)
   def wrapper(prod_value, walden_value):
+    if not isinstance(prod_value, Number) and isinstance(walden_value, Number):
+      return True # If prod doesn't have a number and Walden does then it's a feature
+
+    if not isinstance(prod_value, Number) or not isinstance(walden_value, Number):
+      return False
+        
+    return func(prod_value, walden_value)
+  return wrapper
+
+
+def expects_strings_bug(func):
+  @wraps(func)
+  def wrapper(prod_value, walden_value):
+    if isinstance(prod_value, str) and not isinstance(walden_value, str):
+      return True # If prod has a string and Walden doesn't then it's a bug
+    
     if not isinstance(prod_value, str) or not isinstance(walden_value, str):
       return False
         
     return func(prod_value, walden_value)
-    
   return wrapper
 
 
-def expects_lists(func):
+def expects_lists_bug(func):
+  @wraps(func)
+  def wrapper(prod_value, walden_value):
+    if isinstance(prod_value, list) and not isinstance(walden_value, list):
+      return True # If prod has a list and Walden doesn't then it's a bug
+    
+    if not isinstance(prod_value, list) or not isinstance(walden_value, list):
+      return False
+        
+    return func(prod_value, walden_value)
+  return wrapper
+
+
+def expects_lists_feature(func):
   @wraps(func)
   def wrapper(prod_value, walden_value):
     if not isinstance(prod_value, list) or not isinstance(walden_value, list):
       return False
         
     return func(prod_value, walden_value)
-    
   return wrapper
-
 
 def is_set_test(func):
   return func in [set_does_not_equal, set_count_does_not_equal, set_count_increased, set_count_decreased]
@@ -61,22 +89,21 @@ def not_exact_match(prod_value, walden_value):
   return prod_value != walden_value
 
 
-@expects_numbers
+@expects_numbers_feature
 def greater_than(prod_value, walden_value):
   return walden_value > prod_value
 
 
-@expects_numbers
+@expects_numbers_feature
 def greater_than_or_equal(prod_value, walden_value):
   return walden_value >= prod_value
 
 
-@expects_numbers
+@expects_numbers_bug
 def less_than(prod_value, walden_value):
   return walden_value < prod_value
 
 
-@expects_numbers
 def within_5_percent(prod_value, walden_value):  
   if prod_value == 0 and walden_value == 0:
       return True
@@ -87,7 +114,6 @@ def within_5_percent(prod_value, walden_value):
   return abs((walden_value - prod_value) / prod_value * 100) <= 5
 
 
-@expects_numbers
 def within_10_percent(prod_value, walden_value):  
   if prod_value == 0 and walden_value == 0:
       return True
@@ -98,47 +124,47 @@ def within_10_percent(prod_value, walden_value):
   return abs((walden_value - prod_value) / prod_value * 100) <= 10
 
 
-@expects_numbers
+@expects_numbers_bug
 def below_5_percent(prod_value, walden_value):
   return prod_value > walden_value and not within_5_percent(prod_value, walden_value)
 
 
-@expects_numbers
-def within_5_percent_or_more(prod_value, walden_value):
-  return walden_value > prod_value or within_5_percent(prod_value, walden_value)
-
-
-@expects_strings
+@expects_strings_bug
 def length_not_within_5_percent(prod_value, walden_value):
   return not within_5_percent(len(prod_value), len(walden_value))
 
 
-@expects_numbers
+@expects_numbers_bug
 def not_within_10_percent(prod_value, walden_value):
   return not within_10_percent(prod_value, walden_value)
 
 
-@expects_lists
+@expects_lists_bug
 def count_does_not_equal(prod_value, walden_value):
   return len(prod_value) != len(walden_value)
 
 
-@expects_lists
+@expects_lists_bug
 def set_does_not_equal(prod_value, walden_value):
   return set(prod_value) != set(walden_value)
 
 
-@expects_lists
+@expects_lists_feature
+def set_equals(prod_value, walden_value):
+  return set(prod_value) == set(walden_value)
+
+
+@expects_lists_bug
 def set_count_does_not_equal(prod_value, walden_value):
   return len(set(prod_value)) != len(set(walden_value))
 
 
-@expects_lists
+@expects_lists_feature
 def set_count_increased(prod_value, walden_value):
   return len(set(prod_value)) < len(set(walden_value))
 
 
-@expects_lists
+@expects_lists_bug
 def set_count_decreased(prod_value, walden_value):
   return len(set(prod_value)) > len(set(walden_value))
 
@@ -191,10 +217,10 @@ def type_changed_to_repository(prod_value, walden_value):
 def type_changed_from_funder(prod_value, walden_value):
   return prod_value == "funder" and walden_value != "funder"
 
+
 """
 TEST DEFINITIONS
 """
-
 tests_schema_base = {
   "works": [
     # Sources
@@ -254,22 +280,22 @@ tests_schema_base = {
     },
     {
       "display_name": "Best OA is_published Changed",
-      "field": "best_oa_location.source.is_published",
+      "field": "best_oa_location.is_published",
       "field_type": "boolean",
       "test_func": not_exact_match,
       "test_type": "bug",
       "category": "sources",
-      "description": "The <code>best_oa_location.source.is_published</code> fields are not equal",
+      "description": "The <code>best_oa_location.is_published</code> fields are not equal",
     },
     # Open Access
     {
-      "display_name": "is_oa Changed",
+      "display_name": "is_oa Added",
       "field": "open_access.is_oa",
       "field_type": "boolean",
-      "test_func": not_exact_match,
-      "test_type": "bug",
+      "test_func":  became_true,
+      "test_type": "feature",
       "category": "open access",
-      "description": "The <code>open_access.is_oa</code> fields are not equal",
+      "description": "The <code>open_access.is_oa</code> field became <code>true</code>",
     },
     {
       "display_name": "is_oa Lost",
@@ -300,21 +326,21 @@ tests_schema_base = {
     },
     {
       "display_name": "PDF URL Lost",
-      "field": "best_oa_location.source.pdf_url",
+      "field": "best_oa_location.pdf_url",
       "field_type": "string",
       "test_func": value_lost,
       "test_type": "bug",
       "category": "open access",
-      "description": "The <code>best_oa_location.source.pdf_url</code> field was not null but now is null or missing",
+      "description": "The <code>best_oa_location.pdf_url</code> field was not null but now is null or missing",
     },
     {
       "display_name": "PDF URL Added",
-      "field": "best_oa_location.source.pdf_url",
+      "field": "best_oa_location.pdf_url",
       "field_type": "string",
       "test_func": value_added,
       "test_type": "feature",
       "category": "open access",
-      "description": "The <code>best_oa_location.source.pdf_url</code> field was missing but now has a value",
+      "description": "The <code>best_oa_location.pdf_url</code> field was missing but now has a value",
     },
     {
       "display_name": "Best OA License Changed",
@@ -447,13 +473,13 @@ tests_schema_base = {
     },
     # Authors
     {
-      "display_name": "Authorships Changed",
-      "field": "authorships[*].id",
+      "display_name": "Authors Match",
+      "field": "authorships[*].author.id",
       "field_type": "array",
-      "test_func": set_does_not_equal,
-      "test_type": "bug",
+      "test_func": set_equals,
+      "test_type": "feature",
       "category": "authors",
-      "description": "The set of items in the <code>authorships[*].id</code> fields are not equal",
+      "description": "The set of items in the <code>authorships[*].author.id</code> fields are equal",
     },
     {
       "display_name": "Corresponding Author Changed",
@@ -703,6 +729,15 @@ tests_schema_base = {
       "test_type": "feature",
       "category": "works",
       "description": "The <code>type</code> field changed to <code>repository</code>",
+    },
+    {
+      "display_name": "Host Organization Lost",
+      "field": "host_organization",
+      "field_type": "string",
+      "test_func": value_lost,
+      "test_type": "feature",
+      "category": "works",
+      "description": "The <code>host_organization</code> field had a value but is now null or missing",
     },
   ],
   "institutions": [
