@@ -439,13 +439,13 @@ tests_schema_base = {
       "description": "The <code>locations_count</code> field decreased",
     },
     {
-      "display_name": "Location Version Changed",
-      "field": "locations[*].version",
-      "field_type": "number",
+      "display_name": "Primary Location Version Changed",
+      "field": "primary_location.version",
+      "field_type": "string",
       "test_func": not_exact_match,
       "test_type": "bug",
       "category": "locations",
-      "description": "The <code>locations_count</code> field decreased",
+      "description": "The <code>primary_location.version</code> field changed",
     },
     # Citations
     {
@@ -495,13 +495,13 @@ tests_schema_base = {
     },
     # Authors
     {
-      "display_name": "Authors Match",
+      "display_name": "Authors Changed",
       "field": "authorships[*].author.id",
       "field_type": "array",
-      "test_func": set_equals,
-      "test_type": "feature",
+      "test_func": set_does_not_equal,
+      "test_type": "bug",
       "category": "authors",
-      "description": "The set of items in the <code>authorships[*].author.id</code> fields are equal",
+      "description": "The set of items in the <code>authorships[*].author.id</code> fields are not equal",
     },
     {
       "display_name": "Corresponding Author Changed",
