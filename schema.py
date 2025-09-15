@@ -375,7 +375,7 @@ tests_schema_base = {
     },
     {
       "display_name": "Best OA License Added",
-      "field": "best_oa_location.source.license",
+      "field": "best_oa_location.license",
       "field_type": "string",
       "test_func": value_added,
       "test_type": "feature",
