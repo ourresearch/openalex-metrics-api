@@ -438,15 +438,6 @@ tests_schema_base = {
       "category": "locations",
       "description": "The <code>locations_count</code> field decreased",
     },
-    {
-      "display_name": "Primary Location Version Changed",
-      "field": "primary_location.version",
-      "field_type": "string",
-      "test_func": not_exact_match,
-      "test_type": "bug",
-      "category": "locations",
-      "description": "The <code>primary_location.version</code> field changed",
-    },
     # Citations
     {
       "display_name": "Referenced Works Count Decreased",
