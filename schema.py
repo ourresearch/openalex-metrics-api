@@ -231,6 +231,14 @@ def existing_value_changed(prod_value, walden_value):
   return prod_value is not None and prod_value != walden_value
 
 
+@expects_lists_bug
+def set_lost_items(prod_value, walden_value):
+  """ True if prod had items that are no longer in walden (allows additions, fails on removals) """
+  prod_set = set(prod_value)
+  walden_set = set(walden_value)
+  return not prod_set.issubset(walden_set)
+
+
 def language_changed_to_non_english(prod_value, walden_value):
   return prod_value == "en" and walden_value != "en"
 
@@ -612,13 +620,13 @@ tests_schema_base = {
       "description": "The <code>ids.pmid</code> fields are not equal",
     },
     {
-      "display_name": "Indexed In Changed",
+      "display_name": "Indexed In Lost Items",
       "field": "indexed_in",
       "field_type": "array",
-      "test_func": set_does_not_equal,
+      "test_func": set_lost_items,
       "test_type": "bug",
       "category": "other",
-      "description": "The set of items in the <code>indexed_in</code> fields are not equal",
+      "description": "Items from the <code>indexed_in</code> field in prod were lost in walden (additions are allowed)",
     },
     {
       "display_name": "Retraction Added",
