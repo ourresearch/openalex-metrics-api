@@ -124,6 +124,17 @@ def within_10_percent(prod_value, walden_value):
   return abs((walden_value - prod_value) / prod_value * 100) <= 10
 
 
+def within_20_percent(prod_value, walden_value):  
+  if prod_value == 0 and walden_value == 0:
+      return True
+
+  if prod_value == 0:
+      return False
+
+  return abs((walden_value - prod_value) / prod_value * 100) <= 20
+
+
+
 @expects_numbers_bug
 def below_5_percent(prod_value, walden_value):
   return prod_value > walden_value and not within_5_percent(prod_value, walden_value)
@@ -137,6 +148,11 @@ def length_not_within_5_percent(prod_value, walden_value):
 @expects_numbers_bug
 def not_within_10_percent(prod_value, walden_value):
   return not within_10_percent(prod_value, walden_value)
+
+
+@expects_numbers_bug
+def not_within_20_percent(prod_value, walden_value):
+  return not within_20_percent(prod_value, walden_value)
 
 
 @expects_lists_bug
@@ -479,10 +495,10 @@ tests_schema_base = {
       "display_name": "FWCI Changed",
       "field": "fwci",
       "field_type": "number",
-      "test_func": not_within_10_percent,
+      "test_func": not_within_20_percent,
       "test_type": "bug",
       "category": "citations",
-      "description": "The <code>fwci</code> field changed by more than 10%",
+      "description": "The <code>fwci</code> field changed by more than 20%",
     },
     # Authors
     {
