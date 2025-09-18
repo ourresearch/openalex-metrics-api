@@ -303,15 +303,6 @@ tests_schema_base = {
       "description": "The <code>primary_location.source.id</code> field had a value and changed",
     },
     {
-      "display_name": "Best OA Source Added",
-      "field": "best_oa_location.source.id",
-      "field_type": "string",
-      "test_func": value_added,
-      "test_type": "feature",
-      "category": "sources",
-      "description": "The <code>best_oa_location.source.id</code> field was missing but now has a value",  
-    },
-    {
       "display_name": "Best OA is_published Changed",
       "field": "best_oa_location.is_published",
       "field_type": "boolean",
