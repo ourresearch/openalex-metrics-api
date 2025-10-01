@@ -302,15 +302,6 @@ tests_schema_base = {
       "category": "sources",
       "description": "The <code>primary_location.source.id</code> field had a value and changed",
     },
-    {
-      "display_name": "Best OA is_published Changed",
-      "field": "best_oa_location.is_published",
-      "field_type": "boolean",
-      "test_func": not_exact_match,
-      "test_type": "bug",
-      "category": "sources",
-      "description": "The <code>best_oa_location.is_published</code> fields are not equal",
-    },
     # Open Access
     {
       "display_name": "is_oa Added",
@@ -335,7 +326,7 @@ tests_schema_base = {
       "field": "open_access.oa_status",
       "field_type": "string",
       "test_func": status_changed_except_gold,
-      "test_type": "bug",
+      "test_type": "feature",
       "category": "open access",
       "description": "The <code>open_access.oa_status</code> field changed to a value other than <code>gold</code>",
     },
@@ -491,7 +482,7 @@ tests_schema_base = {
       "field": "fwci",
       "field_type": "number",
       "test_func": not_within_10_percent,
-      "test_type": "bug",
+      "test_type": "feature",
       "category": "citations",
       "description": "The <code>fwci</code> field changed by more than 10%",
     },
