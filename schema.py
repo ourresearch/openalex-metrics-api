@@ -254,7 +254,7 @@ def set_lost_items(prod_value, walden_value):
 
 
 def language_changed_to_non_english(prod_value, walden_value):
-  return prod_value == "en" and walden_value != "en"
+  return prod_value == "en" and walden_value != "en" and walden_value is not None
 
 
 def language_changed_from_value_to_english(prod_value, walden_value):
